@@ -57,9 +57,14 @@
 #' @return A list with components:
 #'   \code{criterion}, \code{comparison} (from [compare_brsm_models()]),
 #'   \code{baseline_model}, \code{reference_model}, \code{reference_type},
+<<<<<<< HEAD
 #'   \code{reference_fitted} (logical), optional \code{loo_diagnostics} (for
 #'   \code{criterion = "loo"}), and optional \code{ppc} list with side-by-side
 #'   summaries.
+=======
+#'   \code{reference_fitted} (logical), and optional \code{ppc} list with
+#'   side-by-side summaries.
+>>>>>>> c017c42 (Testing push)
 #'
 #' @examples
 #' \dontrun{
@@ -79,10 +84,13 @@ loftest_brsm <- function(object,
                          reference_model = NULL,
                          reference_type = c("cubic", "extended"),
                          criterion = c("loo", "waic"),
+<<<<<<< HEAD
                          loo_moment_match = FALSE,
                          loo_reloo = FALSE,
                          loo_k_threshold = 0.7,
                          loo_auto_moment_match = TRUE,
+=======
+>>>>>>> c017c42 (Testing push)
                          include_ppc = FALSE,
                          ppc_ndraws = 200,
                          ppc_probs = c(0.025, 0.975),
@@ -107,6 +115,7 @@ loftest_brsm <- function(object,
   criterion <- match.arg(criterion)
   sampling_preset <- match.arg(sampling_preset)
 
+<<<<<<< HEAD
   if (!is.logical(loo_moment_match) || length(loo_moment_match) != 1L ||
       is.na(loo_moment_match)) {
     stop("loo_moment_match must be a non-missing TRUE/FALSE value.")
@@ -125,6 +134,8 @@ loftest_brsm <- function(object,
     stop("loo_auto_moment_match must be a non-missing TRUE/FALSE value.")
   }
 
+=======
+>>>>>>> c017c42 (Testing push)
   baseline_fit <- .brsm_extract_fit(object, caller = "loftest_brsm")
   reference_fitted <- FALSE
 
@@ -230,6 +241,7 @@ loftest_brsm <- function(object,
 
   reference_fit <- .brsm_extract_fit(reference_model, caller = "loftest_brsm")
 
+<<<<<<< HEAD
   compare_args <- list(
     models = list(baseline = baseline_fit, reference = reference_fit),
     criterion = criterion
@@ -276,6 +288,12 @@ loftest_brsm <- function(object,
       auto_moment_match_retry = auto_retry_used
     )
   }
+=======
+  comparison <- compare_brsm_models(
+    models = list(baseline = baseline_fit, reference = reference_fit),
+    criterion = criterion
+  )
+>>>>>>> c017c42 (Testing push)
 
   out <- list(
     criterion = criterion,
@@ -286,10 +304,13 @@ loftest_brsm <- function(object,
     reference_fitted = reference_fitted
   )
 
+<<<<<<< HEAD
   if (!is.null(loo_diagnostics)) {
     out$loo_diagnostics <- loo_diagnostics
   }
 
+=======
+>>>>>>> c017c42 (Testing push)
   if (isTRUE(include_ppc)) {
     ppc_base <- check_brsm_ppc(
       baseline_fit,
@@ -324,6 +345,7 @@ loftest_brsm <- function(object,
 
 
 #' @keywords internal
+<<<<<<< HEAD
 .brsm_summarize_pareto_k <- function(estimates, threshold = 0.7) {
   if (!is.list(estimates) || length(estimates) == 0) {
     return(list(
@@ -375,6 +397,8 @@ loftest_brsm <- function(object,
 
 
 #' @keywords internal
+=======
+>>>>>>> c017c42 (Testing push)
 .brsm_build_reference_formula <- function(
     response,
     factor_names,
