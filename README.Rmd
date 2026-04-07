@@ -1,0 +1,224 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# brsm: Bayesian Response Surface Methods
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+Tools for analyzing posterior distributions of quadratic response surfaces from Bayesian model fits. Provides functions for computing stationary points, ridge analysis, steepest ascent paths, congruence hypothesis testing, and visualization of response surfaces with full posterior uncertainty quantification.
+
+## Features
+
+- **S3 Pipe-Friendly Design**: Work directly with `brsm_fit` objects using the pipe operator (`|>`)
+- **Comprehensive RSA Analysis**: Stationary points, ridge analysis, steepest ascent, credible regions
+- **Congruence Hypothesis Testing**: Compute and test RSA congruence parameters (a1-a5)
+- **Bayesian Uncertainty Quantification**: Full posterior distributions and credible intervals
+- **Data Preparation**: Automated factor scaling (z-score and range methods)
+- **Model Comparison**: Lack-of-fit testing against reference models (cubic, extended)
+- **Publication-Ready Graphics**: Integrated visualization with ggplot2
+
+## Installation
+
+You can install the development version of brsm from GitHub:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("aalai4/brsm")
+```
+
+## Quick Start
+
+### Basic Workflow
+
+```{r example, eval=FALSE}
+library(brsm)
+
+# Fit a Bayesian response surface model
+fit <- fit_brsm(
+  data = my_data,
+  response = "y",
+  factor_names = c("x1", "x2"),
+  chains = 4,
+  iter = 2000
+)
+
+# Analyze with pipe-friendly functions
+analysis <- fit |>
+  congruence_parameters() |>      # Compute RSA parameters a1-a5
+  rope_congruence(rope = c(-0.1, 0.1))  # Test practical equivalence
+
+# Characterize the response surface
+stationarity <- fit |> 
+  stationary_point() |>
+  classify_stationarity_point()
+
+ridge <- fit |> posterior_ridge_analysis()
+```
+
+### S3 Method Dispatch
+
+The central innovation is automatic metadata extraction via S3 methods:
+
+```{r, eval=FALSE}
+# New style (recommended) - factor_names extracted from fit
+params <- fit |> congruence_parameters()
+
+# Old style (still supported) - explicit factor_names
+draws <- as.data.frame(fit$fit)
+params <- congruence_parameters(draws, factor_names = c("x1", "x2"))
+```
+
+## Core Functions
+
+### Model Fitting
+- `fit_brsm()`: Fit Bayesian quadratic response surface model
+- `fit_brsm_congruence()`: Fit with congruence constraints (broad or strict)
+- `prepare_brsm_data()`: Prepare and center/scale factor variables
+
+### Analysis Functions (S3 Methods)
+- `congruence_parameters()`: Compute Edwards & Parry (1993) RSA parameters
+- `rope_congruence()`: Test practical equivalence of congruence parameters
+- `summarize_congruence()`: Summarize posterior distribution of RSA parameters
+- `stationary_point()`: Identify critical points of the response surface
+- `classify_stationarity_point()`: Classify points (maximum, minimum, saddle)
+- `posterior_ridge_analysis()`: Ridge analysis at specified radii
+- `credible_optimum_region()`: Compute credible regions around optimum
+- `steepest_ascent()`: Compute steepest ascent path from starting point
+- `loftest_brsm()`: Lack-of-fit test against more complex reference models
+
+### Utilities
+- `as_brsm_draws()`: Convert various inputs to standardized draws format
+- `compare_brsm_models()`: Compare multiple models via LOO/WAIC
+- `predict_surface()`: Generate predictions across response surface grid
+- `surface_grid()`: Create grid for response surface visualization
+- `decode_brsm_data()`: Reverse variable transformations to original scale
+- `get_brsm_coding()`: Extract coding metadata
+
+## Example: Full Analysis Pipeline
+
+```{r pipeline, eval=FALSE}
+library(brsm)
+
+# 1. PREPARE DATA
+prepared <- prepare_brsm_data(
+  data = experimental_data,
+  factor_names = c("temperature", "pressure"),
+  method = "zscore"  # or "range"
+)
+
+# 2. FIT MODELS
+fit_unconstrained <- fit_brsm(
+  data = prepared,
+  response = "yield",
+  factor_names = c("temperature", "pressure")
+)
+
+fit_congruence <- fit_brsm_congruence(
+  data = prepared,
+  response = "yield",
+  factor_names = c("temperature", "pressure"),
+  congruence_type = "broad"
+)
+
+# 3. COMPARE MODELS
+comparison <- compare_brsm_models(
+  models = list(
+    unconstrained = fit_unconstrained,
+    congruence = fit_congruence
+  ),
+  criterion = "loo"
+)
+
+# 4. ANALYZE CONGRUENCE HYPOTHESIS
+params <- fit_unconstrained |> congruence_parameters()
+rope <- fit_unconstrained |> rope_congruence(rope = c(-0.5, 0.5))
+summary_stats <- fit_unconstrained |> summarize_congruence()
+
+# 5. CHARACTERIZE RESPONSE SURFACE
+critical <- fit_unconstrained |> stationary_point()
+classification <- critical |> classify_stationarity_point()
+ridge <- fit_unconstrained |> posterior_ridge_analysis()
+
+# 6. GENERATE PREDICTIONS
+grid <- surface_grid(
+  ranges = list(temperature = c(50, 150), pressure = c(1, 5)),
+  n = 20
+)
+predictions <- predict_surface(
+  draw = as_brsm_draws(fit_unconstrained),
+  factor_names = c("temperature", "pressure"),
+  newdata = grid,
+  summary = TRUE
+)
+
+# 7. DECODE TO ORIGINAL SCALE
+predictions_original <- decode_brsm_data(
+  predictions[, c("temperature", "pressure")],
+  coding = get_brsm_coding(fit_unconstrained)
+)
+
+# 8. LACK-OF-FIT TEST
+lof_test <- loftest_brsm(
+  object = fit_unconstrained,
+  reference_type = "cubic",
+  include_ppc = TRUE
+)
+```
+
+## Design Philosophy
+
+The S3 pipe-friendly architecture prioritizes:
+- **Usability**: Intuitive, pipe-compatible API
+- **Bayesian Rigor**: Full posterior uncertainty for all estimates
+- **Backward Compatibility**: Existing code continues to work
+- **Flexibility**: Extensible through S3 methods
+- **Documentation**: Comprehensive examples and vignettes
+
+## S3 Method Dispatch Details
+
+All major functions implement S3 methods for flexible input:
+
+```r
+# Generic function
+congruence_parameters <- function(object, factor_names = NULL) UseMethod("congruence_parameters")
+
+# S3 method for brsm_fit (extracts factor_names automatically)
+congruence_parameters.brsm_fit <- function(object, factor_names = NULL) { ... }
+
+# S3 method for data frame (explicit factor_names required)
+congruence_parameters.default <- function(object, factor_names = NULL) { ... }
+
+# S3 method for brmsfit (legacy compatibility)
+congruence_parameters.brmsfit <- function(object, factor_names = NULL) { ... }
+```
+
+## References
+
+- Edwards, J. R., & Parry, M. E. (1993). On the use of polynomial regression as an alternative to difference scores. *Journal of Management*, 19(3), 513-549.
+- Shanock, L. R., Baran, B. E., Galperin, B. L., Prost, S. G., & Rogelberg, S. G. (2010). Bounded emotional experience: Emotion toward leaders and implications for leadership research and practice. *The Leadership Quarterly*, 21(3), 429-446.
+- Guo, X., Luh, D. B., & Box, G. E. (2009). Bayesian non-parametric modelling for case studies in operations research. *Journal of the Royal Statistical Society: Series C*, 58(1), 99-118.
+
+## Documentation
+
+See `S3_DESIGN_SUMMARY.md` for detailed information about the S3 pipe-friendly design and implementation.
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Contributing
+
+Contributions are welcome! Please submit issues and pull requests to the GitHub repository.

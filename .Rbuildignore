@@ -1,0 +1,7 @@
+^renv$
+^renv\.lock$
+^.*\.Rproj$
+^\.Rproj\.user$
+^run_test\.bat$
+^test_converter\.R$
+^README\.Rmd$
