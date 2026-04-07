@@ -1,0 +1,371 @@
+---
+title: "Quantifying Uncertainty in Response Surface Experiments Using Bayesian Quadratic Models"
+author: 
+      - "Arian Alai" 
+      - "Aftab Sorwar"
+date: 04/20/2026
+format:
+  pdf:
+    pdf-engine: pdflatex
+    documentclass: article
+    toc: true
+    number-sections: true
+    fontsize: 11pt
+    geometry: margin=1in
+editor: visual
+include-in-header:
+      text: |
+        \usepackage{tikz}
+        \usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+bibliography: references.bib
+header-includes:
+  - \usepackage{amsmath, amssymb, amsthm}
+  - \usepackage{booktabs}
+  - \usepackage{graphicx}
+  - \usepackage{float}
+  - \usepackage{multirow}
+  - \usepackage{algorithm}
+  - \usepackage{algorithmic}
+  - \usepackage{setspace}
+  - \usepackage{caption}
+  - \usepackage{hyperref}
+  - \newcommand{\proglang}[1]{\textsf{#1}}
+  - \newcommand{\pkg}[1]{\textbf{#1}}
+---
+
+## Abstract
+
+Response Surface Methodology (RSM) is a standard framework for local process optimization using designed experiments, but classical implementations rely on least-squares point estimates, treating optimization diagnostics (gradients, stationary points, curvature classification) as deterministic despite their dependence on uncertain coefficients. This introduces overconfidence when data are limited or expensive. We develop \pkg{brsm}, an \proglang{R} package implementing Bayesian quadratic response surface models that propagate posterior uncertainty through all optimization quantities, and we benchmark it against a classical OLS/bootstrap response-surface baseline. We demonstrate through simulation that Bayesian RSM provides well-calibrated uncertainty while recovering classical estimates under weak priors and sufficient data, with explicit uncertainty quantification for nonlinear optimization targets, including settings where decision certainty is low.
+
+*Keywords*: Bayesian regression, response surface methodology, MCMC, uncertainty quantification, quadratic optimization.
+
+## Introduction and problem description
+
+Response Surface Methodology (RSM) is widely used to model designed experiments with second-order polynomials and to support optimization decisions (e.g., locating stationary points, assessing curvature, and planning follow-up runs [@box1987; @lenth2009]). Classical RSM is effective, but typically reports point estimates for derived quantities such as stationary point location and curvature type.
+
+A central limitation in RSM is that uncertainty in these derived quantities is not routinely quantified. Approximate methods such as the delta method or bootstrap [@efron1993] can be used, but are often omitted in routine workflows and may be unreliable for strongly nonlinear transformations. In particular, the stationary point
+
+$$x_* = -\frac{1}{2} B^{-1} b$$
+
+depends nonlinearly on estimated coefficients, so uncertainty propagation is nontrivial. Deterministic recommendations can therefore hide substantial uncertainty, especially in small-sample or noisy settings.
+
+This motivates a Bayesian RSM framework that propagates posterior uncertainty directly to optimization outputs.
+
+This is a computational statistics problem because inference and decision-relevant summaries require repeated numerical linear algebra, simulation-based posterior approximation, and draw-wise propagation through nonlinear functionals that do not admit simple closed-form uncertainty formulas.
+
+## Statistical model
+
+We model responses with a quadratic surface:
+
+$$y_i = \beta_0 + \mathbf{b}^{\top} \mathbf{x}_i + \mathbf{x}_i^{\top} B \mathbf{x}_i + \varepsilon_i, \quad \varepsilon_i \sim N(0, \sigma^2),$$
+
+where $\mathbf{x}_i \in \mathbb{R}^p$ are coded predictors, $\mathbf{b}$ is the linear-effect vector, and $B$ is a symmetric matrix containing quadratic and interaction curvature information.
+
+Predictors are analyzed on the standard RSM coded scale (typically centered at 0 with low/high settings near -1/+1), and randomness in outcomes is captured by the Gaussian error term ($\varepsilon_i$). Equivalently, the conditional data-generating mechanism is
+
+$y_i \mid \mathbf{x}_i \sim N\!\left(\beta_0 + \mathbf{b}^{\top} \mathbf{x}_i + \mathbf{x}_i^{\top} B \mathbf{x}_i, \sigma^2\right).$
+
+#### Equivalent linear form
+
+$$\mathbf{y} \sim N(X\boldsymbol{\beta}, \sigma^2 I_n),$$
+
+with $X$ containing intercept, linear, quadratic, and interaction terms. Concretely, for observation $i$ the corresponding row of $X$ is
+
+$$\mathbf{x}_i^\top = \bigl(1,\; x_{i1},\ldots,x_{ip},\; x_{i1}^2,\ldots,x_{ip}^2,\; x_{i1}x_{i2},\ldots,x_{i,p-1}x_{ip}\bigr),$$
+
+and $\boldsymbol{\beta}$ collects the intercept $\beta_0$, the $p$ linear coefficients $b_j$, the $p$ pure-quadratic coefficients $B_{jj}$, and the $\binom{p}{2}$ interaction coefficients $2B_{jk}$ ($j < k$), giving a total of $1 + 2p + \binom{p}{2}$ parameters. This expanded design matrix is what is passed directly to the sampler, so all derived quantities (gradient, Hessian, stationary point) are computed from the same $\boldsymbol{\beta}$ draws.
+
+#### Prior specification
+
+The priors are weakly informative:
+
+$$\beta_j \sim N(0, 100^2), \quad \sigma \sim t_3^+(0, 2.5).$$
+
+The coefficient prior $N(0, 100^2)$ places negligible mass outside any plausible response range on the coded scale, making it effectively non-informative for typical RSM responses while still providing mild regularization that aids sampler geometry. The half-$t_3^+(0, 2.5)$ prior on $\sigma$ is a standard weakly informative choice for scale parameters [@gelman2006]: the heavy tails allow large residual standard deviations if the data support them, while the scale of 2.5 on the coded-predictor scale is diffuse enough to avoid inadvertent shrinkage in moderate-noise settings. Together, these priors are designed to let the likelihood dominate whenever $n$ is moderate, so that Bayesian and classical estimates agree closely under the same data, as confirmed in the simulation results.
+
+Parameter interpretation is as follows: $\beta_0$ is the expected response at the coded center ($\mathbf{x}=\mathbf{0}$); the entries of $\mathbf{b}$ are first-order local slope effects; diagonal entries of $B$ encode pure quadratic curvature; off-diagonal entries of $B$ encode pairwise interaction curvature; and $\sigma$ is the residual standard deviation.
+
+The main assumptions are that the quadratic approximation is locally adequate in the design region, that errors are independent Gaussian with constant variance, and that the design matrix is sufficiently well-conditioned for stable computation.
+
+## Inferential strategies
+
+### Optimization-based inference
+
+As a classical baseline, coefficients can be estimated by least squares (or, equivalently under Gaussian errors, maximum likelihood) by minimizing the residual sum of squares:
+
+$$\hat{\boldsymbol{\beta}}_{\text{MLE}} = \arg\min_{\boldsymbol{\beta}} \; (\mathbf{y}-X\boldsymbol{\beta})^\top(\mathbf{y}-X\boldsymbol{\beta}).$$
+
+In practice, this optimization is carried out with standard stable linear-algebra solvers for linear models (e.g., QR- or Cholesky-based routines). The main numerical concern is not iterative optimizer failure, but ill-conditioning in $X^\top X$ and instability in derived quantities that require inverting $B$.
+
+### Numerical integration
+
+Several inferential targets require integration over parameter uncertainty. In frequentist workflows, this appears as bootstrap resampling for interval estimation of nonlinear summaries such as $\mathbf{x}_*$. In Bayesian workflows, posterior expectations and credible intervals are integrals under $p(\boldsymbol{\theta}\mid\mathbf{y})$.
+
+We approximate these integrals by Monte Carlo averages from posterior draws (and, for frequentist comparison, nonparametric bootstrap replicates). Accuracy improves with draw/replicate count, while computational cost grows approximately linearly, creating an accuracy-versus-cost tradeoff.
+
+### Bayesian inference via MCMC
+
+The posterior
+
+$$p(\boldsymbol{\beta}, \sigma^2 \mid \mathbf{y}, X) \propto p(\mathbf{y} \mid X, \boldsymbol{\beta}, \sigma^2) \, p(\boldsymbol{\beta}, \sigma^2)$$
+
+is sampled using Hamiltonian Monte Carlo (HMC) via \proglang{Stan} and the \pkg{brms} interface [@burkner2017; @carpenter2017]. We employed 2 chains, 2000 iterations per chain with 1000 warmup, with convergence assessed by $\hat{R}$, ESS, and trace diagnostics.
+
+For each posterior draw $s = 1, \ldots, S$:
+
+$$\nabla f^{(s)}(\mathbf{x}) = \mathbf{b}^{(s)} + 2B^{(s)} \mathbf{x}, \quad H^{(s)} = 2B^{(s)},$$
+
+and when numerically stable:
+
+$$\mathbf{x}_*^{(s)} = -\frac{1}{2} \left(B^{(s)}\right)^{-1} \mathbf{b}^{(s)}.$$
+
+Curvature class is determined from the eigenvalues of $H^{(s)}$: all positive eigenvalues imply a local minimum, all negative eigenvalues imply a local maximum, mixed signs imply a saddle point, and near-zero eigenvalues indicate a flat or indeterminate surface.
+
+This yields posterior distributions over stationary points and posterior probabilities over curvature classes. Because per-draw matrix inversion can be unstable, condition checks are applied to $B^{(s)}$ and ill-conditioned draws are excluded from stationary-point summaries. This improves robustness but can reduce effective sample size for derived quantities, so exclusion rates should be reported.
+
+## Uncertainty quantification
+
+For any derived quantity $g(\boldsymbol{\theta})$ with posterior draws $\{\boldsymbol{\theta}^{(s)}\}_{s=1}^S$:
+
+The posterior mean is
+
+$$\bar{g} = \frac{1}{S} \sum_{s=1}^{S} g\left(\boldsymbol{\theta}^{(s)}\right),$$
+
+the equal-tailed 95% credible interval is
+
+$$\left[q_{0.025}(g), \, q_{0.975}(g)\right],$$
+
+and for discrete outputs such as curvature class $c$, posterior probabilities are estimated by
+
+$$P(c \mid \text{data}) = \frac{1}{S} \sum_{s=1}^{S} \mathbb{1}\left\{c^{(s)} = c\right\}.$$
+
+This is especially important for nonlinear functionals like $\mathbf{x}_*$, where uncertainty can be skewed, heavy-tailed, or multimodal.
+
+For frequentist comparison, uncertainty can also be quantified with bootstrap confidence intervals (e.g., percentile intervals) by refitting the quadratic model across resampled datasets and recomputing derived quantities such as $\mathbf{x}_*$. Bootstrap intervals provide a nonparametric benchmark [@efron1993], while Bayesian credible intervals provide direct posterior probability statements under the model and priors. Comparing both helps assess whether inferential conclusions are robust across paradigms.
+
+## Simulation study and validation
+
+### Design
+
+Synthetic data were generated from known quadratic surfaces with coded predictors $\mathbf{x}_i \in [-1, 1]^p$. The design varied noise level with $\sigma \in \{0.5, 1.0, 2.0\}$, sample size with $n \in \{20, 50, 100\}$, and dimension with $p \in \{2, 3\}$. This yields $2 \times 3 \times 3 = 18$ configurations. For each configuration, 100 independent datasets were fit with the Bayesian quadratic pipeline, and a parallel classical OLS/bootstrap response-surface analysis was run as a comparator.
+
+### Metrics
+
+Evaluation focused on coefficient recovery, measured by bias and RMSE of the posterior mean relative to the true coefficients; 95% interval coverage, measured as the proportion of Bayesian credible intervals or bootstrap confidence intervals containing the true value; stationary-point error, measured by $\|\hat{\mathbf{x}}_* - \mathbf{x}_*^{\text{true}}\|_2$; and curvature-classification performance, measured by posterior probability assigned to the true class.
+
+### Posterior predictive model checking
+
+In addition to repeated-simulation performance metrics, we conducted posterior predictive checks (PPCs) to assess whether the fitted quadratic Gaussian model could reproduce observed response patterns for representative simulated datasets. This addresses model adequacy rather than estimator recovery: simulation summaries evaluate how well the method recovers known truth across repeated datasets, whereas PPCs evaluate whether a specific fitted model generates replicated data consistent with the observed sample [@gelman2013].
+
+We used a representative medium-difficulty configuration ($p=2$, $n=50$, $\sigma=1.0$) and examined density-overlay and dispersion diagnostics from posterior predictive draws. The density overlay compares the observed response distribution to replicated datasets $\mathbf{y}^{\mathrm{rep}}$ sampled from the posterior predictive distribution, while auxiliary checks on spread and residual shape assess whether the Gaussian quadratic model misses obvious features of the data. In the representative fit, these diagnostics did not indicate gross mismatch, supporting the adequacy of the quadratic Gaussian specification for the simulated scenarios studied here.
+
+```{r ppc-diagnostics, echo=FALSE, fig.width=12, fig.height=4.2}
+par(mfrow = c(1, 3), mar = c(1, 1, 2, 1))
+
+# Load and display each PNG
+p1 <- png::readPNG("ppc_dens_overlay.png")
+p3 <- png::readPNG("ppc_stat_mean.png")
+p4 <- png::readPNG("ppc_stat_sd.png")
+
+
+plot(NA, xlim=0:1, ylim=0:1, xaxt="n", yaxt="n", bty="n", main="Density Overlay")
+rasterImage(p1, 0, 0, 1, 1)
+
+plot(NA, xlim=0:1, ylim=0:1, xaxt="n", yaxt="n", bty="n", main="Statistic Mean Check")
+rasterImage(p3, 0, 0, 1, 1)
+
+plot(NA, xlim=0:1, ylim=0:1, xaxt="n", yaxt="n", bty="n", main="Statistic SD Check")
+rasterImage(p4, 0, 0, 1, 1)
+
+par(mfrow=c(1, 1))
+```
+
+### Model structural choice
+
+For this simulation study, we focused on fitting quadratic models throughout all 1,800 datasets, which matched the true data-generating process. Because the true model form was fixed by construction, combinatorial model search—comparing polynomial submodels or selecting among candidate structures—was not a relevant inferential question here; the simulation was designed to evaluate uncertainty propagation under the correctly specified model, not structural model discovery. Model adequacy was validated via posterior predictive checks (PPCs) on representative fits, confirming that the quadratic Gaussian specification captured the simulated response surfaces. In real applications where the true model is unknown, practitioners can employ predictive model comparison criteria such as LOO and WAIC [@vehtari2017] to assess whether richer polynomial structure is warranted, but such model selection was unnecessary here given the known quadratic form of the underlying simulations.
+
+### Bayesian results summary
+
+The table reports five metrics aggregated across 100 replicates per configuration. Coverage should approach the nominal 95% level if credible intervals are well-calibrated; RMSE (Coef) and RMSE $(x*)$ measure coefficient and stationary-point recovery error; and Class Prob is the posterior probability of the true curvature class, with higher values indicating more confident classification. Detailed interpretation of these patterns and comparison to the frequentist baseline appears in Section 6.7.
+
+```{r bayesian-sim-table, echo=FALSE, message=FALSE, warning=FALSE}
+bayes_tbl <- utils::read.csv("sim_results_cfg_1_18.csv", check.names = FALSE)
+
+bayes_tbl <- bayes_tbl[, c("p", "n", "sigma", "coverage", "rmse", "sp_error", "class_prob")]
+
+bayes_tbl[["coverage"]] <- round(bayes_tbl[["coverage"]], 3)
+bayes_tbl[["rmse"]] <- round(bayes_tbl[["rmse"]], 3)
+bayes_tbl[["sp_error"]] <- round(bayes_tbl[["sp_error"]], 2)
+bayes_tbl[["class_prob"]] <- round(bayes_tbl[["class_prob"]], 3)
+
+names(bayes_tbl) <- c("\\textit{p}", "\\textit{n}", "\\ensuremath{\\sigma}", "Coverage (95\\% CI)", "RMSE (Coef)", "RMSE (x*)", "Class Prob")
+
+knitr::kable(
+  bayes_tbl,
+  format = "latex",
+  booktabs = TRUE,
+  escape = FALSE,
+  caption = "Bayesian simulation results across 18 configurations",
+  align = c("r", "r", "r", "r", "r", "r", "r")
+) |> kableExtra::kable_styling(latex_options = "HOLD_position")
+```
+
+### Frequentist bootstrap comparison
+
+The frequentist OLS/bootstrap baseline showed the same broad qualitative trends as the Bayesian analysis: coefficient bias remained small, RMSE decreased with larger $n$ and increased with larger $\sigma$, and curvature-class certainty weakened in low-information settings. Bootstrap interval coverage was near nominal overall and became mildly conservative in the hardest $p=3$, $n=20$ cells. Bootstrap instability was negligible in most settings, with failure rates below $1\%$ even in the most difficult regimes.
+
+Because the frequentist comparator was generated in an independent simulation pipeline rather than on the identical replicate-level datasets used for the Bayesian analysis, the comparison should be interpreted as qualitative and cell-level, not as a paired replicate-by-replicate superiority test.
+
+```{r frequentist-sim-table, echo=FALSE, message=FALSE, warning=FALSE}
+freq_tbl <- utils::read.csv("sim_results_freq_cfg_1_18.csv", check.names = FALSE)
+
+freq_tbl <- freq_tbl[, c("p", "n", "sigma", "coverage", "rmse", "sp_error", "class_prob", "boot_fail_rate")]
+
+freq_tbl[["coverage"]] <- round(freq_tbl[["coverage"]], 3)
+freq_tbl[["rmse"]] <- round(freq_tbl[["rmse"]], 3)
+freq_tbl[["sp_error"]] <- round(freq_tbl[["sp_error"]], 2)
+freq_tbl[["class_prob"]] <- round(freq_tbl[["class_prob"]], 3)
+freq_tbl[["boot_fail_rate"]] <- round(freq_tbl[["boot_fail_rate"]], 3)
+
+names(freq_tbl) <- c("\\textit{p}", "\\textit{n}", "\\ensuremath{\\sigma}", "Coverage (95\\% CI)", "RMSE (Coef)", "RMSE (x*)", "Class Prob", "Bootstrap Fail Rate")
+
+knitr::kable(
+  freq_tbl,
+  format = "latex",
+  booktabs = TRUE,
+  escape = FALSE,
+  caption = "Frequentist OLS/bootstrap simulation results across 18 configurations",
+  align = c("r", "r", "r", "r", "r", "r", "r", "r")
+) |> kableExtra::kable_styling(latex_options = "HOLD_position")
+```
+
+### Observed behavior
+
+Across both paradigms, bias is negligible across all settings ($|\text{bias}| < 0.1$), and RMSE generally increases with noise and decreases with sample size, as expected from standard asymptotics.
+
+Bayesian credible intervals are well-calibrated, achieving 94--97% coverage across all settings. The bootstrap comparator is also close to nominal overall, but is somewhat conservative in the hardest $p=3$, $n=20$ settings.
+
+In both paradigms, stationary-point recovery is markedly more fragile than coefficient recovery. Errors are sensitive to noise, conditioning, and dimensionality, reinforcing that optimization-derived summaries are harder inferential targets than the coefficients themselves.
+
+Curvature certainty degrades markedly with noise in both paradigms. Under the Bayesian fit, posterior probability of the true class is generally higher than under the bootstrap comparator, but both approaches show substantial deterioration in low-information settings, especially for $p=3$.
+
+All Bayesian configurations achieved minimum bulk ESS \> 900 and tail ESS \> 890, well above the 400-sample recommendation. The bootstrap comparator had negligible failure rates in most cells and stayed below $1\%$ even in the hardest regimes, indicating that both workflows were computationally workable, though the Bayesian one was more resource-intensive.
+
+## Computational considerations
+
+Workflow costs are dominated by HMC sampling; post-processing per draw is moderate for $p \leq 3$ but scales with draw count. Practical implementation for long simulation runs required engineering safeguards:
+
+For a representative budget point in this study (2 chains, 2000 iterations with 1000 warmup), Bayesian fits implemented in \proglang{R} [@r-core-2025] via \pkg{brms} and \proglang{Stan} were approximately two orders of magnitude slower than single OLS fits, with practical wall-clock ratios roughly 100--200x depending on configuration and hardware. End-to-end simulation runtime scaled roughly linearly with replicate count once checkpointing and per-configuration chunking were in place. In practice, stable long runs required periodic cleanup of loaded Stan DLLs and garbage collection, checkpointed per-configuration outputs saved as `.rds` files for recovery, early-stop logic after repeated fit failures, and chunked execution in fresh R sessions on Windows to avoid dynamic library exhaustion.
+
+These controls are essential for reproducible large-scale Bayesian benchmarking in real environments.
+
+## Discussion and conclusion
+
+Bayesian RSM has several clear strengths. It propagates uncertainty to optimization outputs rather than stopping at coefficient estimates, provides posterior distributions for stationary points and class probabilities for curvature, remains compatible with standard quadratic RSM interpretation, and showed well-calibrated uncertainty with robust numerical performance in the simulation study.
+
+What worked most reliably was coefficient-level inference. Across both Bayesian and classical paradigms, bias remained small and RMSE followed expected asymptotic patterns as $n$ increased and noise decreased. Bayesian interval calibration remained close to nominal across the full design grid, bootstrap calibration was also near nominal overall, posterior predictive diagnostics on representative datasets showed no major distributional mismatch, and the engineering controls used here made long simulation runs reproducible and operationally manageable.
+
+What became fragile in practice was not coefficient estimation itself but the nonlinear quantities derived from it. Stationary-point estimation was substantially more fragile than coefficient estimation, so even good coefficient recovery could still coincide with large error in $\mathbf{x}_*$. Curvature classification certainty also degraded quickly in noisy and higher-dimensional settings, indicating that decision-level summaries can become unstable before coefficient summaries do. Importantly, these lower posterior class probabilities are themselves decision-relevant: they signal when optimization conclusions are fragile and when additional data or design refinement may be needed. In addition, derived-quantity computation required excluding ill-conditioned draws in some settings, which improved numerical stability but reduced effective information for those summaries. On Windows, large batch runs also proved practically fragile unless the workflow was explicitly engineered around temporary DLL accumulation and session-level resource pressure.
+
+The main lesson about computation versus theory is that theoretical identifiability of the quadratic model does not guarantee stable inference for nonlinear functionals. In practice, matrix conditioning and posterior geometry directly affect whether theoretically defined quantities can be estimated robustly. Asymptotic intuition is most reliable for coefficients; optimization-derived functionals such as stationary points and curvature class are materially harder targets and require explicit uncertainty propagation and diagnostics. More broadly, model checking and computation-aware workflow design are part of the inferential pipeline rather than peripheral implementation details, because computational stability determines which theoretical summaries are practically available and trustworthy.
+
+The method tradeoff is therefore straightforward. When coefficient estimation is the primary goal, designs are well-conditioned, and compute budgets are tight, classical OLS with bootstrap intervals is often the most efficient baseline. When decisions depend directly on nonlinear optimization outputs such as stationary-point location and curvature class, Bayesian RSM is preferable because it propagates uncertainty coherently and provides interpretable probability statements for those derived targets, including explicit indication of low-certainty regimes. A practical default workflow is to begin with the simpler classical fit for rapid screening and then use Bayesian RSM for final decision support in moderate-to-high uncertainty settings, especially when sample size is limited, noise is substantial, or conclusions are sensitive to curvature classification.
+
+The limitations of the present approach are also clear. Computational cost remains materially higher than least squares, numerical instability can affect derived quantities when curvature is weak or designs are ill-conditioned, prior sensitivity may increase in very small or weakly identified settings, and the quadratic approximation remains local so misspecification can bias both classical and Bayesian outputs.
+
+Overall, Bayesian quadratic RSM is a practical and valuable extension of classical RSM when uncertainty-aware optimization is needed. Its main benefit is not merely improved parameter uncertainty reporting, but explicit uncertainty in the decision-relevant quantities: where the optimum is and what type of optimum it is. In weak-data settings, those uncertainty summaries should be treated as primary inferential outputs rather than optional diagnostics. The simulation study demonstrates that well-designed priors and modern MCMC samplers can deliver reliable, well-calibrated uncertainty propagation across coefficient and optimization-derived quantities.
+
+## References
+
+::: {#refs}
+:::
+
+\newpage
+
+## Appendix: Supplementary Material
+
+### A. Statistical derivations
+
+#### A.1 Canonical form
+
+The quadratic model is equivalently expressed as:
+
+$$f(\mathbf{x}) = \beta_0 + \mathbf{b}^{\top} \mathbf{x} + \mathbf{x}^{\top} B \mathbf{x},$$
+
+where $B$ is a $p \times p$ symmetric matrix with diagonal entries $\beta_{jj}$ and off-diagonal entries $\beta_{jk}/2$.
+
+The gradient is $\nabla f(\mathbf{x}) = \mathbf{b} + 2B\mathbf{x}$.
+
+The Hessian is $H = 2B$ (constant).
+
+#### A.2 Stationary point
+
+Setting $\nabla f(\mathbf{x}_*) = \mathbf{0}$ yields $\mathbf{b} + 2B\mathbf{x}_* = \mathbf{0}$, hence:
+
+$$\mathbf{x}_* = -\frac{1}{2} B^{-1} \mathbf{b}.$$
+
+This exists and is unique if $B$ is invertible.
+
+#### A.3 Canonical classification
+
+Eigenvalues $\lambda_1, \ldots, \lambda_p$ of $H = 2B$ determine the local behavior. If all $\lambda_j > 0$, the stationary point is a local minimum; if all $\lambda_j < 0$, it is a local maximum; and if the eigenvalues have mixed signs, it is a saddle point.
+
+### B. Computational details
+
+The results were obtained using \proglang{R} 4.3+ with the \pkg{brsm} package (version 0.1.0). Key packages used in the study: \pkg{brms}, \pkg{rstan}, \pkg{ggplot2}, \pkg{Rcpp}. \proglang{R} itself and all packages are available from the Comprehensive \proglang{R} Archive Network (CRAN) at \url{https://CRAN.R-project.org/}.
+
+### C. Reproducibility appendix
+
+#### C.1 Algorithms
+
+The simulation workflow consists of the following algorithmic components:
+
+1. Generate synthetic quadratic-response datasets over a grid of $(p, n, \sigma)$ conditions.
+2. Fit Bayesian quadratic models via HMC (\pkg{brms}/\proglang{Stan}).
+3. Extract posterior draws for intercept, linear, quadratic, and interaction terms.
+4. Compute draw-wise derived quantities: stationary point, Hessian eigenstructure, and curvature class.
+5. Aggregate posterior summaries and performance metrics over replicates.
+6. Run an independent frequentist OLS + bootstrap comparator over the same configuration grid.
+7. Summarize cell-level metrics and compare qualitative trends across paradigms.
+
+#### C.2 Pseudocode
+
+```text
+Input: grid G = {(p, n, sigma)}, replicates R
+For each configuration g in G:
+  Set true quadratic parameters theta_true(g)
+  For r = 1,...,R:
+    Simulate data D_r from quadratic model with theta_true(g), sigma(g)
+
+    # Bayesian pipeline
+    Fit brms quadratic model to D_r using HMC
+    Extract posterior draws {theta^(s)}
+    Compute coefficient summaries (bias, RMSE, coverage)
+    For each draw s:
+      Compute stationary point x_*^(s) when numerically stable
+      Compute Hessian H^(s) and curvature class c^(s)
+    Aggregate stationary-point error and class probability
+
+    # Frequentist comparator (independent simulation pipeline)
+    Fit OLS quadratic model to D_r
+    Bootstrap refit to obtain interval and derived-quantity uncertainty
+    Compute corresponding metrics
+
+  Aggregate replicate-level metrics to configuration-level summaries
+Output: tables of Bayesian and frequentist results across all configurations
+```
+
+#### C.3 Parameter settings
+
+Primary settings used in the simulation are:
+
+- Configuration grid: $p \in \{2,3\}$, $n \in \{20,50,100\}$, $\sigma \in \{0.5,1.0,2.0\}$.
+- Number of configurations: $18$.
+- Replicates per configuration: $100$.
+- Bayesian sampler: HMC via \pkg{brms}/\proglang{Stan}.
+- MCMC controls: 2 chains, 2000 iterations per chain, 1000 warmup.
+- Priors: $\beta_j \sim N(0,100^2)$ and $\sigma \sim t_3^+(0,2.5)$.
+- Convergence diagnostics: $\hat{R}$, bulk ESS, tail ESS, and trace diagnostics.
+- Stationary-point computation: draw-wise inversion with conditioning checks; ill-conditioned draws excluded from stationary-point summaries.
+- Frequentist comparator: OLS fit with nonparametric bootstrap for uncertainty on nonlinear summaries.
+- Summary metrics: coefficient bias/RMSE, interval coverage, stationary-point error, curvature-class probability, and bootstrap failure rate (frequentist only).
