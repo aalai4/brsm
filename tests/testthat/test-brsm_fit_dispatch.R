@@ -55,7 +55,10 @@ test_that("brsm_workflow uses dispatch object cleanly for brsm_fit", {
     factor_names = c("x1", "x2"),
     ranges = fit_obj$ranges,
     include_plots = FALSE,
-    steps = c("predictions", "stationary", "classification", "credible_region", "steepest_ascent")
+    steps = c(
+      "predictions", "stationary", "classification",
+      "credible_region", "steepest_ascent"
+    )
   )
 
   expect_true("predictions" %in% names(out))

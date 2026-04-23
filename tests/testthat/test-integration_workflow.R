@@ -9,7 +9,10 @@
   .integration_cache$data
 }
 
-.fit_integration_model <- function(congruence_type = NULL, coded = FALSE, seed = 601) {
+.fit_integration_model <- function(
+  congruence_type = NULL,
+  coded = FALSE,
+  seed = 601) {
   dat <- .get_integration_data()
   input_data <- if (coded) {
     prepare_brsm_data(dat, factor_names = c("x1", "x2"), method = "zscore")
@@ -59,7 +62,11 @@ test_that("Full workflow: prepare -> fit -> congruence parameters -> rope", {
   posterior <- as_brsm_draws(fit)
   params <- congruence_parameters(posterior, factor_names = c("x1", "x2"))
   summary_df <- summarize_congruence(posterior, factor_names = c("x1", "x2"))
-  rope <- rope_congruence(posterior, factor_names = c("x1", "x2"), rope = c(-0.1, 0.1))
+  rope <- rope_congruence(
+    posterior,
+    factor_names = c("x1", "x2"),
+    rope = c(-0.1, 0.1)
+  )
 
   expect_s3_class(prepared, "brsm_coded_data")
   expect_s3_class(fit, "brsm_fit")
@@ -106,9 +113,16 @@ test_that("Workflow: decode predictions to original scale", {
   skip_if_no_brms_tests()
 
   dat <- .get_integration_data()
-  prepared <- prepare_brsm_data(dat, factor_names = c("x1", "x2"), method = "zscore")
+  prepared <- prepare_brsm_data(
+    dat,
+    factor_names = c("x1", "x2"),
+    method = "zscore"
+  )
   fit <- .fit_integration_model(coded = TRUE, seed = 607)
-  decoded <- decode_brsm_data(prepared[, c("x1", "x2")], coding = get_brsm_coding(fit))
+  decoded <- decode_brsm_data(
+    prepared[, c("x1", "x2")],
+    coding = get_brsm_coding(fit)
+  )
 
   expect_true(all(abs(decoded$x1 - dat$x1) < 1e-8))
   expect_true(all(abs(decoded$x2 - dat$x2) < 1e-8))
@@ -127,7 +141,9 @@ test_that("Print and summary workflow", {
   expect_true(any(grepl("Coefficient Summary", summary_output, fixed = TRUE)))
 })
 
-test_that("Backward compatibility: existing fit_brsm models work with new functions", {
+test_that(
+  "Backward compatibility: existing fit_brsm models work with new functions",
+  {
   skip_if_no_brms_tests()
 
   fit <- .fit_integration_model(seed = 614)
@@ -142,34 +158,62 @@ test_that("Backward compatibility: existing fit_brsm models work with new functi
   expect_data_frame(params, ncols = 5)
   expect_data_frame(summary_df, nrows = 5)
   expect_no_error(print(old_style_fit))
-})
+}
+)
 
 test_that("Workflow: multiple congruence types compared via LOF", {
   skip_if_no_brms_tests()
 
-  fit_unconstrained <- .fit_integration_model(congruence_type = "unconstrained", seed = 609)
+  fit_unconstrained <- .fit_integration_model(
+    congruence_type = "unconstrained",
+    seed = 609
+  )
   fit_broad <- .fit_integration_model(congruence_type = "broad", seed = 610)
   fit_strict <- .fit_integration_model(congruence_type = "strict", seed = 611)
 
   comp <- compare_brsm_models(
-    models = list(unconstrained = fit_unconstrained, broad = fit_broad, strict = fit_strict),
+    models = list(
+      unconstrained = fit_unconstrained,
+      broad = fit_broad,
+      strict = fit_strict
+    ),
     criterion = "loo"
   )
 
-  params_uncon <- congruence_parameters(as_brsm_draws(fit_unconstrained), factor_names = c("x1", "x2"))
-  rope_uncon <- rope_congruence(as_brsm_draws(fit_unconstrained), factor_names = c("x1", "x2"), rope = c(-0.1, 0.1))
+  params_uncon <- congruence_parameters(
+    as_brsm_draws(fit_unconstrained),
+    factor_names = c("x1", "x2")
+  )
+  rope_uncon <- rope_congruence(
+    as_brsm_draws(fit_unconstrained),
+    factor_names = c("x1", "x2"),
+    rope = c(-0.1, 0.1)
+  )
 
   expect_true(is.data.frame(comp$comparison))
   expect_data_frame(params_uncon, ncols = 5)
   expect_data_frame(rope_uncon, nrows = 5)
-  expect_equal(sort(unique(c(fit_broad$congruence_type, fit_strict$congruence_type))), c("broad", "strict"))
+  expect_equal(
+    sort(unique(c(fit_broad$congruence_type, fit_strict$congruence_type))),
+    c("broad", "strict")
+  )
 })
 
-test_that("Integration: prepare -> fit_congruence -> congruence_parameters -> summarize", {
+test_that(
+  "Integration: prepare -> fit_congruence -> summarize",
+  {
   skip_if_no_brms_tests()
 
-  prepared <- prepare_brsm_data(.get_integration_data(), c("x1", "x2"), method = "zscore")
-  fit <- .fit_integration_model(congruence_type = "unconstrained", coded = TRUE, seed = 612)
+  prepared <- prepare_brsm_data(
+    .get_integration_data(),
+    c("x1", "x2"),
+    method = "zscore"
+  )
+  fit <- .fit_integration_model(
+    congruence_type = "unconstrained",
+    coded = TRUE,
+    seed = 612
+  )
   posterior <- as_brsm_draws(fit)
   params <- congruence_parameters(posterior, factor_names = c("x1", "x2"))
   summary_df <- summarize_congruence(posterior, factor_names = c("x1", "x2"))
@@ -178,12 +222,17 @@ test_that("Integration: prepare -> fit_congruence -> congruence_parameters -> su
   expect_s3_class(fit, "brsm_fit")
   expect_data_frame(params, ncols = 5)
   expect_data_frame(summary_df, nrows = 5)
-})
+}
+)
 
 test_that("Coding metadata persists through full workflow", {
   skip_if_no_brms_tests()
 
-  prepared <- prepare_brsm_data(.get_integration_data(), c("x1", "x2"), method = "zscore")
+  prepared <- prepare_brsm_data(
+    .get_integration_data(),
+    c("x1", "x2"),
+    method = "zscore"
+  )
   coding_before <- get_brsm_coding(prepared)
   fit <- .fit_integration_model(coded = TRUE, seed = 613)
   coding_after <- get_brsm_coding(fit)

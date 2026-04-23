@@ -80,11 +80,17 @@ test_that("fit_brsm_congruence produces brsm_fit object with metadata", {
   expect_equal(result$factor_names, c("x1", "x2"))
 })
 
-test_that("fit_brsm_congruence preserves coding metadata from prepare_brsm_data", {
+test_that(
+  "fit_brsm_congruence preserves coding metadata from prepare_brsm_data",
+  {
   skip_if_no_brms_tests()
 
   dat <- generate_simulation_data(n = 25, seed = 203)
-  prepared <- prepare_brsm_data(dat, factor_names = c("x1", "x2"), method = "zscore")
+  prepared <- prepare_brsm_data(
+    dat,
+    factor_names = c("x1", "x2"),
+    method = "zscore"
+  )
 
   result <- fit_brsm_congruence(
     data = prepared,
@@ -103,7 +109,8 @@ test_that("fit_brsm_congruence preserves coding metadata from prepare_brsm_data"
   coding <- get_brsm_coding(result)
   expect_equal(coding$method, "zscore")
   expect_equal(names(coding$factors), c("x1", "x2"))
-})
+}
+)
 
 test_that("fit_brsm_congruence converges without excessive warnings", {
   skip_if_no_brms_tests()
@@ -136,7 +143,9 @@ test_that("fit_brsm_congruence broad constraint enforces b1=b2", {
   )
 
   expect_true(grepl("I\\(x1\\+x2\\)", formula_str))
-  expect_true(grepl("I\\(I\\(x1\\^2\\)\\s*\\+\\s*I\\(x2\\^2\\)\\)", formula_str))
+  expect_true(
+    grepl("I\\(I\\(x1\\^2\\)\\s*\\+\\s*I\\(x2\\^2\\)\\)", formula_str)
+  )
   expect_true(grepl("x1:x2", formula_str))
 })
 
@@ -148,7 +157,9 @@ test_that("fit_brsm_congruence strict constraint removes interaction", {
   )
 
   expect_true(grepl("I\\(x1\\+x2\\)", formula_str))
-  expect_true(grepl("I\\(I\\(x1\\^2\\)\\s*\\+\\s*I\\(x2\\^2\\)\\)", formula_str))
+  expect_true(
+    grepl("I\\(I\\(x1\\^2\\)\\s*\\+\\s*I\\(x2\\^2\\)\\)", formula_str)
+  )
   expect_false(grepl("x1:x2", formula_str))
 })
 
@@ -170,8 +181,15 @@ test_that("fit_brsm_congruence integrates with existing fit_brsm workflow", {
     silent = 2
   )
 
-  params <- congruence_parameters(as_brsm_draws(result), factor_names = c("x1", "x2"))
-  rope <- rope_congruence(as_brsm_draws(result), factor_names = c("x1", "x2"), rope = c(-0.1, 0.1))
+  params <- congruence_parameters(
+    as_brsm_draws(result),
+    factor_names = c("x1", "x2")
+  )
+  rope <- rope_congruence(
+    as_brsm_draws(result),
+    factor_names = c("x1", "x2"),
+    rope = c(-0.1, 0.1)
+  )
 
   expect_s3_class(result, "brsm_fit")
   expect_no_error(print(result))

@@ -112,7 +112,10 @@ test_that("loftest_brsm with auto-fit extended reference model", {
     silent = 2
   )
 
-  ref_formula <- paste(deparse(stats::formula(result$reference_model)), collapse = " ")
+  ref_formula <- paste(
+    deparse(stats::formula(result$reference_model)),
+    collapse = " "
+  )
   expect_type(result, "list")
   expect_true(isTRUE(result$reference_fitted))
   expect_true(grepl("I\\(x1\\^3\\)", ref_formula))
@@ -132,7 +135,9 @@ test_that("loftest_brsm reference_type='cubic' adds cubic terms", {
   expect_true(grepl("x1:x2", txt))
 })
 
-test_that("loftest_brsm reference_type='extended' adds cubic and interaction terms", {
+test_that(
+  "loftest_brsm reference_type='extended' adds cubic and interaction terms",
+  {
   f <- brsm:::.brsm_build_reference_formula(
     response = "y",
     factor_names = c("x1", "x2"),
@@ -144,7 +149,8 @@ test_that("loftest_brsm reference_type='extended' adds cubic and interaction ter
   expect_true(grepl("I\\(x2\\^3\\)", txt))
   expect_true(grepl("I\\(x1\\^2\\):x2", txt))
   expect_true(grepl("x1:I\\(x2\\^2\\)", txt))
-})
+}
+)
 
 test_that("loftest_brsm without include_ppc", {
   skip_if_no_brms_tests()
@@ -246,7 +252,11 @@ test_that("loftest_brsm errors when reference model is simpler than baseline", {
   )
 
   expect_no_error(
-    loftest_brsm(object = baseline, reference_model = simpler_reference, include_ppc = FALSE)
+    loftest_brsm(
+      object = baseline,
+      reference_model = simpler_reference,
+      include_ppc = FALSE
+    )
   )
 })
 
@@ -285,7 +295,12 @@ test_that("loftest_brsm handles single factor case", {
   )
 
   expect_type(result, "list")
-  expect_true(grepl("I\\(x1\\^3\\)", paste(deparse(stats::formula(result$reference_model)), collapse = " ")))
+  expect_true(
+    grepl(
+      "I\\(x1\\^3\\)",
+      paste(deparse(stats::formula(result$reference_model)), collapse = " ")
+    )
+  )
 })
 
 test_that("loftest_brsm handles two factor case", {
@@ -304,7 +319,10 @@ test_that("loftest_brsm handles two factor case", {
     silent = 2
   )
 
-  ref_formula <- paste(deparse(stats::formula(result$reference_model)), collapse = " ")
+  ref_formula <- paste(
+    deparse(stats::formula(result$reference_model)),
+    collapse = " "
+  )
   expect_true(grepl("I\\(x1\\^3\\)", ref_formula))
   expect_true(grepl("I\\(x2\\^3\\)", ref_formula))
 })
