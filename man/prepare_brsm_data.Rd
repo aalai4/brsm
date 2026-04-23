@@ -4,16 +4,17 @@
 \alias{prepare_brsm_data}
 \title{Prepare Factor Columns for Bayesian RSM Modeling}
 \usage{
-prepare_brsm_data(data, factor_names, method = c("zscore", "range"))
+prepare_brsm_data(data, factor_names, method = c("zscore", "range", "identity"))
 }
 \arguments{
 \item{data}{Data frame containing factor columns.}
 
 \item{factor_names}{Character vector of factor column names to code.}
 
-\item{method}{Coding method. One of \code{"zscore"} (mean/sd) or
+\item{method}{Coding method. One of \code{"zscore"} (mean/sd),
 \code{"range"} (midpoint/half-range; approximately maps observed range to
-\code{[-1, 1]}).}
+\code{[-1, 1]}), or \code{"identity"} (no transform; records explicit
+identity coding metadata for already-coded predictors).}
 }
 \value{
 A data frame with coded factor columns. The returned object has class

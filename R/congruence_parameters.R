@@ -99,12 +99,20 @@ congruence_parameters.default <- function(object, factor_names = NULL) {
     )
   }
 
-  if (b12_col %in% colnames(draws)) {
-    b12_col_use <- b12_col
-  } else {
+  b12_col_use <- .brsm_find_interaction_col(f1, f2, colnames(draws))
+  if (is.null(b12_col_use)) {
     stop(
       "Could not find interaction term column for ", f1, ":", f2,
-      ". Tried: ", b12_col
+      ". Tried: ",
+      paste(
+        c(
+          paste0("b_", f1, ":", f2),
+          paste0("b_", f2, ":", f1),
+          paste0("b_", f1, ".", f2),
+          paste0("b_", f2, ".", f1)
+        ),
+        collapse = ", "
+      )
     )
   }
 

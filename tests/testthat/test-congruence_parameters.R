@@ -138,3 +138,44 @@ test_that("rope_congruence validates rope bounds", {
     "must be less than"
   )
 })
+
+test_that("congruence_parameters handles sanitized quadratic and interaction names", {
+  set.seed(404)
+  draws <- data.frame(
+    b_Intercept = rnorm(30),
+    b_x1 = rnorm(30),
+    b_x2 = rnorm(30),
+    b_Ix1E2 = rnorm(30, -0.2, 0.05),
+    b_Ix2E2 = rnorm(30, -0.25, 0.05),
+    b_x1.x2 = rnorm(30, 0.1, 0.02),
+    check.names = FALSE
+  )
+
+  out <- congruence_parameters(draws, factor_names = c("x1", "x2"))
+
+  expect_data_frame(out, ncols = 5, nrows = 30)
+  expect_equal(out$a2[1], draws$b_Ix1E2[1] + draws$b_Ix2E2[1])
+  expect_equal(out$a3[1], draws$b_x1.x2[1])
+})
+
+test_that("as_brsm_draws canonicalizes sanitized quadratic naming", {
+  set.seed(405)
+  draws_raw <- data.frame(
+    b_Intercept = rnorm(20),
+    b_x1 = rnorm(20),
+    b_x2 = rnorm(20),
+    b_Ix1E2 = rnorm(20, -0.2, 0.05),
+    b_Ix2E2 = rnorm(20, -0.25, 0.05),
+    b_x1.x2 = rnorm(20, 0.1, 0.02),
+    check.names = FALSE
+  )
+
+  out <- as_brsm_draws(draws_raw, factor_names = c("x1", "x2"))
+
+  expect_true("b_I(x1^2)" %in% names(out))
+  expect_true("b_I(x2^2)" %in% names(out))
+  expect_true("b_x1:x2" %in% names(out))
+  expect_false("b_Ix1E2" %in% names(out))
+  expect_false("b_Ix2E2" %in% names(out))
+  expect_false("b_x1.x2" %in% names(out))
+})

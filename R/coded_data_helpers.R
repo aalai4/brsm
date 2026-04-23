@@ -7,7 +7,8 @@
 #' @param factor_names Character vector of factor column names to code.
 #' @param method Coding method. One of \code{"zscore"} (mean/sd) or
 #'   \code{"range"} (midpoint/half-range; approximately maps observed range to
-#'   \code{[-1, 1]}).
+#'   \code{[-1, 1]}), or \code{"identity"} (no transform; records explicit
+#'   identity coding metadata for already-coded predictors).
 #'
 #' @return A data frame with coded factor columns. The returned object has class
 #'   \code{brsm_coded_data} and contains attribute \code{brsm_coding}, a list
@@ -24,7 +25,7 @@
 #' @export
 prepare_brsm_data <- function(data,
                               factor_names,
-                              method = c("zscore", "range")) {
+                              method = c("zscore", "range", "identity")) {
   if (!is.data.frame(data)) {
     stop("data must be a data.frame.")
   }
@@ -58,13 +59,16 @@ prepare_brsm_data <- function(data,
     if (method == "zscore") {
       center <- mean(x, na.rm = TRUE)
       scale <- stats::sd(x, na.rm = TRUE)
-    } else {
+    } else if (method == "range") {
       x_range <- range(x, na.rm = TRUE)
       center <- mean(x_range)
       scale <- diff(x_range) / 2
+    } else {
+      center <- 0
+      scale <- 1
     }
 
-    if (!is.finite(scale) || scale <= 0) {
+    if (method != "identity" && (!is.finite(scale) || scale <= 0)) {
       stop(
         "Factor '", f, "' has zero/invalid scale under method '", method,
         "'. Provide a factor with variation."
