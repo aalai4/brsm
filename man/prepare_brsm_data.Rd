@@ -15,7 +15,7 @@ prepare_brsm_data(
 
 \item{factor_names}{Character vector of factor column names to code.}
 
-\item{method}{Coding method. One of \code{"zscore"} (mean/sd) or
+\item{method}{Coding method. One of \code{"zscore"} (mean/sd),
 \code{"range"} (midpoint/half-range; approximately maps observed range to
 \code{[-1, 1]}), or \code{"identity"} (no transform; records explicit
 identity coding metadata for already-coded predictors).}
