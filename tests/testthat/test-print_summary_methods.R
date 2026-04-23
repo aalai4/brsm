@@ -20,7 +20,11 @@
         silent = 2
       ),
       coded_z = {
-        prepared <- prepare_brsm_data(dat, factor_names = c("x1", "x2"), method = "zscore")
+        prepared <- prepare_brsm_data(
+          dat,
+          factor_names = c("x1", "x2"),
+          method = "zscore"
+        )
         fit_brsm(
           data = prepared,
           response = "y",
@@ -35,7 +39,11 @@
         )
       },
       coded_range = {
-        prepared <- prepare_brsm_data(dat, factor_names = c("x1", "x2"), method = "range")
+        prepared <- prepare_brsm_data(
+          dat,
+          factor_names = c("x1", "x2"),
+          method = "range"
+        )
         fit_brsm(
           data = prepared,
           response = "y",
@@ -170,7 +178,11 @@ test_that("print.brsm_fit displays coding method if applicable", {
   skip_if_no_brms_tests()
 
   dat <- generate_simulation_data(n = 25, seed = 403)
-  prepared <- prepare_brsm_data(dat, factor_names = c("x1", "x2"), method = "zscore")
+  prepared <- prepare_brsm_data(
+    dat,
+    factor_names = c("x1", "x2"),
+    method = "zscore"
+  )
   fit <- fit_brsm(
     data = prepared,
     response = "y",
@@ -275,7 +287,9 @@ test_that("print.summary.brsm_fit produces readable output", {
   summary_obj <- summary(fit)
 
   result <- capture.output(print(summary_obj))
-  expect_true(any(grepl("Bayesian Response Surface Model Summary", result, fixed = TRUE)))
+  expect_true(any(
+    grepl("Bayesian Response Surface Model Summary", result, fixed = TRUE)
+  ))
   expect_true(any(grepl("Coefficient Summary", result, fixed = TRUE)))
 })
 
@@ -296,7 +310,9 @@ test_that("S3 method dispatch works correctly", {
   expect_no_error(print(fit))
 })
 
-test_that("print output with different congruence types differs appropriately", {
+test_that(
+  "print output with different congruence types differs appropriately",
+  {
   skip_if_no_brms_tests()
 
   output_unc <- capture.output(print(.psm_fit("unconstrained", seed = 416)))
@@ -305,7 +321,8 @@ test_that("print output with different congruence types differs appropriately", 
 
   expect_false(identical(output_unc, output_broad))
   expect_false(identical(output_broad, output_strict))
-})
+}
+)
 
 test_that("print output with different coding methods differs appropriately", {
   skip_if_no_brms_tests()

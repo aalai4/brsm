@@ -54,7 +54,9 @@ test_that("prepare_brsm_data with range method scales to [-1,1]", {
   expect_identical(result$y, df$y)
 })
 
-test_that("prepare_brsm_data with identity method preserves pre-coded factors", {
+test_that(
+  "prepare_brsm_data with identity method preserves pre-coded factors",
+  {
   df <- data.frame(
     x1 = c(-1, -0.5, 0, 0.5, 1),
     x2 = c(-0.8, -0.2, 0, 0.3, 0.9),
@@ -181,11 +183,15 @@ test_that("decode_brsm_data is a no-op for identity coding", {
     method = "identity"
   )
 
-  decoded <- decode_brsm_data(prepared[, c("x1", "x2")], coding = get_brsm_coding(prepared))
+  decoded <- decode_brsm_data(
+    prepared[, c("x1", "x2")],
+    coding = get_brsm_coding(prepared)
+  )
 
   expect_identical(decoded$x1, df$x1)
   expect_identical(decoded$x2, df$x2)
-})
+}
+)
 
 test_that("decode_brsm_data with suffix appends correctly", {
   df <- data.frame(x1 = c(1, 2, 3), x2 = c(10, 20, 30))

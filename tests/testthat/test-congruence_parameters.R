@@ -139,7 +139,9 @@ test_that("rope_congruence validates rope bounds", {
   )
 })
 
-test_that("congruence_parameters handles sanitized quadratic and interaction names", {
+test_that(
+  "congruence_parameters handles sanitized quadratic and interaction names",
+  {
   set.seed(404)
   draws <- data.frame(
     b_Intercept = rnorm(30),
@@ -156,7 +158,8 @@ test_that("congruence_parameters handles sanitized quadratic and interaction nam
   expect_data_frame(out, ncols = 5, nrows = 30)
   expect_equal(out$a2[1], draws$b_Ix1E2[1] + draws$b_Ix2E2[1])
   expect_equal(out$a3[1], draws$b_x1.x2[1])
-})
+}
+)
 
 test_that("as_brsm_draws canonicalizes sanitized quadratic naming", {
   set.seed(405)
