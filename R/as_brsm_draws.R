@@ -60,9 +60,9 @@ as_brsm_draws.brmsfit <- function(object, factor_names = NULL, ...) {
   # Quadratic term names must follow canonical brsm naming: b_I(x1^2).
   quadratic_missing <- character(0)
   for (f in factor_names) {
-    quad_col <- paste0("b_I(", f, "^2)")
-    if (!(quad_col %in% draw_cols)) {
-      quadratic_missing <- c(quadratic_missing, quad_col)
+    quad_col <- .brsm_find_quadratic_col(f, draw_cols)
+    if (is.na(quad_col) || quad_col == "") {
+      quadratic_missing <- c(quadratic_missing, paste0("b_I(", f, "^2)"))
     }
   }
 
@@ -113,15 +113,24 @@ as_brsm_draws.data.frame <- function(object, factor_names, ...) {
   # Try to detect and rename if necessary
   df <- object
 
+  # Normalize accepted quadratic naming variants to canonical b_I(x^2).
+  df_renamed <- df
+  for (f in factor_names) {
+    canonical_col <- paste0("b_I(", f, "^2)")
+    quad_col <- .brsm_find_quadratic_col(f, names(df_renamed))
+    if (!is.na(quad_col) && quad_col != "" &&
+      quad_col != canonical_col &&
+      !(canonical_col %in% names(df_renamed))) {
+      names(df_renamed)[names(df_renamed) == quad_col] <- canonical_col
+    }
+  }
+
   # Check if already in brsm format
   required_cols <- c(
     "b_Intercept",
     paste0("b_", factor_names),
     paste0("b_I(", factor_names, "^2)")
   )
-
-  # Keep incoming names unchanged; canonical quadratic names are required.
-  df_renamed <- df
 
   # Detect and include interaction columns among factor_names.
   interaction_cols <- character(0)
@@ -138,7 +147,16 @@ as_brsm_draws.data.frame <- function(object, factor_names, ...) {
         )
         found <- intersect(candidate_cols, names(df_renamed))
         if (length(found) > 0) {
-          interaction_cols <- c(interaction_cols, found[[1]])
+          canonical_interaction <- paste0("b_", f1, ":", f2)
+          interaction_col <- found[[1]]
+          if (interaction_col != canonical_interaction &&
+            !(canonical_interaction %in% names(df_renamed))) {
+            names(df_renamed)[
+              names(df_renamed) == interaction_col
+            ] <- canonical_interaction
+            interaction_col <- canonical_interaction
+          }
+          interaction_cols <- c(interaction_cols, interaction_col)
         }
       }
     }

@@ -141,7 +141,7 @@
     "Uncoded predictors can cause numerically unstable quadratic ",
     "Bayesian fits. ",
     "Recommended: run prepare_brsm_data(data, factor_names, ",
-    "method='zscore' or 'range') before fitting."
+    "method='zscore', 'range', or 'identity') before fitting."
   )
 
   if (centered && scaled) {
@@ -184,11 +184,34 @@
   if (length(found) == 0L) NULL else found[[1L]]
 }
 
-# Resolve a quadratic column using canonical naming only: b_I(x1^2).
+# Resolve a quadratic column across canonical and sanitized naming
+# variants produced by brms/posterior/data.frame coercion.
 .brsm_find_quadratic_col <- function(f, draw_cols) {
-  candidate <- paste0("b_I(", f, "^2)")
-  found <- intersect(candidate, draw_cols)
-  if (length(found) == 0L) NA_character_ else found[[1L]]
+  canonical <- paste0("b_I(", f, "^2)")
+  candidates <- unique(c(
+    canonical,
+    paste0("b_I", f, "E2"),
+    paste0("b_I", f, "E2."),
+    paste0("b_I.", f, ".2."),
+    paste0("b_I.", f, ".2"),
+    paste0("b_I", f, ".2."),
+    paste0("b_I", f, ".2"),
+    make.names(canonical)
+  ))
+
+  found <- intersect(candidates, draw_cols)
+  if (length(found) > 0L) {
+    return(found[[1L]])
+  }
+
+  f_escaped <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\\\\\1", f)
+  idx <- grep(
+    paste0("^b_?I.*", f_escaped, ".*(\\\\^2|E2|\\\\.2\\\\.?|2\\\\)?)$"),
+    draw_cols,
+    perl = TRUE
+  )
+
+  if (length(idx) == 0L) NA_character_ else draw_cols[idx[[1L]]]
 }
 
 .brsm_hessian_array <- function(draws, factor_names) {

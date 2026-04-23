@@ -120,7 +120,7 @@ check_brsm_fit <- function(object,
     stop("bfmi_threshold must be a finite numeric scalar.")
   }
 
-  summ <- brms::summary(fit)
+  summ <- summary(fit)
   fixed <- summ$fixed
 
   if (is.null(fixed) || nrow(fixed) == 0) {
