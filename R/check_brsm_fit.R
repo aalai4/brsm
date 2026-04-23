@@ -49,7 +49,7 @@
     error = function(e) NA_integer_
   )
 
-  if (!is.na(td)) {
+  if (length(td) == 1L && !is.na(td)) {
     return(td)
   }
 
@@ -58,13 +58,20 @@
       if (is.function(fit$fit$metadata)) {
         md <- fit$fit$metadata()
         if ("max_treedepth" %in% names(md)) {
-          return(as.integer(md$max_treedepth))
+          td_md <- as.integer(md$max_treedepth)
+          if (length(td_md) == 1L && !is.na(td_md)) {
+            return(td_md)
+          }
         }
       }
       NA_integer_
     },
     error = function(e) NA_integer_
   )
+
+  if (length(td) != 1L || is.na(td)) {
+    return(NA_integer_)
+  }
 
   td
 }
