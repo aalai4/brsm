@@ -35,7 +35,11 @@ SAVE_CHECKPOINT <- TRUE
 stan_cache_dir <- file.path(tempdir(), "stan_packages")
 if (dir.exists(stan_cache_dir)) {
   try({
-    dll_files <- list.files(stan_cache_dir, pattern = "\\.dll$", full.names = TRUE)
+    dll_files <- list.files(
+      stan_cache_dir,
+      pattern = "\\.dll$",
+      full.names = TRUE
+    )
     for (dll in dll_files) {
       tryCatch(dyn.unload(dll), error = function(e) NULL)
     }
@@ -179,7 +183,13 @@ safe_mean <- function(x) {
 # -----------------------------------------------------------------------------
 # Helper: one replicate
 # -----------------------------------------------------------------------------
-run_replicate <- function(data, factor_names, true_x_star, true_class, beta_true_vec, debug_metrics = FALSE) {
+run_replicate <- function(
+  data,
+  factor_names,
+  true_x_star,
+  true_class,
+  beta_true_vec,
+  debug_metrics = FALSE) {
   fit <- tryCatch(
     fit_brsm(
       data = data,
@@ -216,7 +226,10 @@ run_replicate <- function(data, factor_names, true_x_star, true_class, beta_true
     paste0("b_I(", factor_names, "^2)")
   )
   if (!all(coef_names %in% names(draws))) {
-    message("missing coef columns: ", paste(setdiff(coef_names, names(draws)), collapse = ", "))
+    message(
+      "missing coef columns: ",
+      paste(setdiff(coef_names, names(draws)), collapse = ", ")
+    )
     return(NULL)
   }
 
@@ -234,7 +247,9 @@ run_replicate <- function(data, factor_names, true_x_star, true_class, beta_true
   sp <- tryCatch(
     stationary_point_fn(draws, factor_names = factor_names, kappa_thresh = Inf),
     error = function(e) {
-      if (debug_metrics) message("stationary_point error: ", conditionMessage(e))
+      if (debug_metrics) {
+        message("stationary_point error: ", conditionMessage(e))
+      }
       NULL
     }
   )
@@ -254,7 +269,9 @@ run_replicate <- function(data, factor_names, true_x_star, true_class, beta_true
   cl <- tryCatch(
     classify_stationarity_point_fn(draws, factor_names = factor_names),
     error = function(e) {
-      if (debug_metrics) message("classify_stationarity_point error: ", conditionMessage(e))
+      if (debug_metrics) {
+        message("classify_stationarity_point error: ", conditionMessage(e))
+      }
       NULL
     }
   )
@@ -326,7 +343,11 @@ for (cfg_i in seq_len(nrow(configs))) {
     stan_cache_dir <- file.path(tempdir(), "stan_packages")
     if (dir.exists(stan_cache_dir)) {
       tryCatch({
-        dll_files <- list.files(stan_cache_dir, pattern = "\\.dll$", full.names = TRUE)
+        dll_files <- list.files(
+          stan_cache_dir,
+          pattern = "\\.dll$",
+          full.names = TRUE
+        )
         for (dll in dll_files) {
           tryCatch(dyn.unload(dll), error = function(e) NULL)
         }
