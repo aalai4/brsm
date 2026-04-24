@@ -57,45 +57,6 @@
           silent = 2
         )
       },
-      broad = fit_brsm_congruence(
-        data = dat,
-        response = "y",
-        factor_names = c("x1", "x2"),
-        congruence_type = "broad",
-        chains = 1,
-        iter = 250,
-        warmup = 125,
-        seed = seed,
-        sampling_preset = "fast",
-        refresh = 0,
-        silent = 2
-      ),
-      strict = fit_brsm_congruence(
-        data = dat,
-        response = "y",
-        factor_names = c("x1", "x2"),
-        congruence_type = "strict",
-        chains = 1,
-        iter = 250,
-        warmup = 125,
-        seed = seed,
-        sampling_preset = "fast",
-        refresh = 0,
-        silent = 2
-      ),
-      unconstrained = fit_brsm_congruence(
-        data = dat,
-        response = "y",
-        factor_names = c("x1", "x2"),
-        congruence_type = "unconstrained",
-        chains = 1,
-        iter = 250,
-        warmup = 125,
-        seed = seed,
-        sampling_preset = "fast",
-        refresh = 0,
-        silent = 2
-      ),
       stop("Unknown key: ", key)
     )
     assign(cache_key, fit, envir = .psm_cache)
@@ -141,29 +102,6 @@ test_that("print.brsm_fit displays factor names", {
   expect_true(any(grepl("Factor Variables", result, fixed = TRUE)))
   expect_true(any(grepl("x1", result, fixed = TRUE)))
   expect_true(any(grepl("x2", result, fixed = TRUE)))
-})
-
-test_that("print.brsm_fit displays congruence type if applicable", {
-  skip_if_no_brms_tests()
-
-  dat <- generate_simulation_data(n = 25, seed = 402)
-  fit <- fit_brsm_congruence(
-    data = dat,
-    response = "y",
-    factor_names = c("x1", "x2"),
-    congruence_type = "broad",
-    chains = 1,
-    iter = 250,
-    warmup = 125,
-    seed = 402,
-    sampling_preset = "fast",
-    refresh = 0,
-    silent = 2
-  )
-
-  result <- capture.output(print(fit))
-  expect_true(any(grepl("Congruence Type", result, fixed = TRUE)))
-  expect_true(any(grepl("broad", result, fixed = TRUE)))
 })
 
 test_that("print.brsm_fit displays factor ranges", {
@@ -258,16 +196,6 @@ test_that("summary.brsm_fit includes brsm metadata in output", {
   expect_true(!is.null(result$formula))
 })
 
-test_that("summary.brsm_fit works with congruence-fitted models", {
-  skip_if_no_brms_tests()
-
-  fit <- .psm_fit("strict", seed = 413)
-  result <- summary(fit)
-
-  expect_s3_class(result, "summary.brsm_fit")
-  expect_identical(result$congruence_type, "strict")
-})
-
 test_that("print.summary.brsm_fit produces readable output", {
   skip_if_no_brms_tests()
 
@@ -309,20 +237,6 @@ test_that("S3 method dispatch works correctly", {
   expect_s3_class(summary(fit), "summary.brsm_fit")
   expect_no_error(print(fit))
 })
-
-test_that(
-  "print output with different congruence types differs appropriately",
-  {
-  skip_if_no_brms_tests()
-
-  output_unc <- capture.output(print(.psm_fit("unconstrained", seed = 416)))
-  output_broad <- capture.output(print(.psm_fit("broad", seed = 417)))
-  output_strict <- capture.output(print(.psm_fit("strict", seed = 418)))
-
-  expect_false(identical(output_unc, output_broad))
-  expect_false(identical(output_broad, output_strict))
-}
-)
 
 test_that("print output with different coding methods differs appropriately", {
   skip_if_no_brms_tests()

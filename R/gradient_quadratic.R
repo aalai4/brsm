@@ -11,15 +11,8 @@ gradient_quadratic <- function(draws, x, factor_names, normalize = FALSE) {
     function(f) .brsm_find_quadratic_col(f, colnames(draws)),
     character(1)
   )
-  missing_quad <- which(is.na(quad_cols) | quad_cols == "")
-  if (length(missing_quad) > 0) {
-    stop(
-      "draws must contain quadratic terms for: ",
-      paste(factor_names[missing_quad], collapse = ", ")
-    )
-  }
 
-  cols_to_check <- draws[, c(linear_cols, quad_cols), drop = FALSE]
+  cols_to_check <- draws[, linear_cols, drop = FALSE]
 
   # Input validation
   if (!is.numeric(x)) stop("x must be numeric.")
@@ -40,7 +33,13 @@ gradient_quadratic <- function(draws, x, factor_names, normalize = FALSE) {
 
   # Precompute linear and quadratic matrices
   linear <- as.matrix(draws[, linear_cols, drop = FALSE])
-  quad <- as.matrix(draws[, quad_cols, drop = FALSE])
+  quad <- matrix(0, nrow = n_draws, ncol = n_factors)
+  for (i in seq_along(quad_cols)) {
+    qcol <- quad_cols[i]
+    if (!is.na(qcol) && qcol != "") {
+      quad[, i] <- as.numeric(draws[[qcol]])
+    }
+  }
 
   # Repeat x for all draws
   xmat <- matrix(rep(t(x), each = n_draws),

@@ -17,7 +17,7 @@ brsm_workflow(
   include_plots = TRUE,
   contour_type = c("mean", "uncertainty", "quantile"),
   seed = NULL,
-  fit_mode = c("none", "fit_brsm", "fit_brsm_congruence"),
+  fit_mode = c("none", "fit_brsm"),
   response = NULL,
   fit_args = list(),
   steps = c("predictions", "stationary", "classification", "credible_region",
@@ -56,7 +56,7 @@ when exactly two factors are provided.}
 \item{seed}{Optional random seed used for stochastic plotting operations.}
 
 \item{fit_mode}{One of `"none"`, `"fit_brsm"`, or
-`"fit_brsm_congruence"`. Use `"none"` (default) to analyze an existing
+`"fit_brsm"`. Use `"none"` (default) to analyze an existing
 Bayesian fit/draw object. Use a fit mode to fit from raw data in `object`
 and then run the workflow.}
 
@@ -64,7 +64,7 @@ and then run the workflow.}
 column in raw input data.}
 
 \item{fit_args}{Named list of additional arguments forwarded to
-[fit_brsm()] or [fit_brsm_congruence()] when `fit_mode != "none"`.
+[fit_brsm()] when `fit_mode != "none"`.
 This enables custom priors and sampling controls without re-writing the
 pipeline manually.}
 
@@ -89,7 +89,7 @@ By default (\code{fit_mode = "none"}), input must be Bayesian:
 coefficient columns (\code{b_Intercept}, \code{b_x1}, \code{b_I(x1^2)},
 interactions, etc.).
 
-If \code{fit_mode} is \code{"fit_brsm"} or \code{"fit_brsm_congruence"},
+If \code{fit_mode} is \code{"fit_brsm"},
 then \code{object} is treated as raw input data and model fitting is done
 internally before running selected workflow steps.
 }

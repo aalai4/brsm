@@ -17,6 +17,16 @@
 #'   or \code{"extended"} (adds cubic and quadratic-by-linear terms).
 #' @param criterion Information criterion for model comparison: \code{"loo"}
 #'   (default) or \code{"waic"}.
+#' @param loo_moment_match Logical; when \code{criterion = "loo"}, pass
+#'   \code{moment_match} to [brms::loo()] via [compare_brsm_models()].
+#' @param loo_reloo Logical; when \code{criterion = "loo"}, pass
+#'   \code{reloo} to [brms::loo()] via [compare_brsm_models()].
+#' @param loo_k_threshold Pareto-k threshold used to flag unstable LOO
+#'   diagnostics when \code{criterion = "loo"}. Defaults to \code{0.7}.
+#' @param loo_auto_moment_match Logical; when \code{TRUE} and
+#'   \code{criterion = "loo"}, automatically re-run model comparison with
+#'   \code{moment_match = TRUE} if any Pareto-k values exceed
+#'   \code{loo_k_threshold}.
 #' @param include_ppc Logical; if \code{TRUE}, compute
 #'   [check_brsm_ppc()] for both baseline and reference models.
 #' @param ppc_ndraws Number of posterior predictive draws for PPC.
@@ -47,8 +57,9 @@
 #' @return A list with components:
 #'   \code{criterion}, \code{comparison} (from [compare_brsm_models()]),
 #'   \code{baseline_model}, \code{reference_model}, \code{reference_type},
-#'   \code{reference_fitted} (logical), and optional \code{ppc} list with
-#'   side-by-side summaries.
+#'   \code{reference_fitted} (logical), optional \code{loo_diagnostics} (for
+#'   \code{criterion = "loo"}), and optional \code{ppc} list with side-by-side
+#'   summaries.
 #'
 #' @examples
 #' \dontrun{
@@ -68,6 +79,10 @@ loftest_brsm <- function(object,
                          reference_model = NULL,
                          reference_type = c("cubic", "extended"),
                          criterion = c("loo", "waic"),
+                         loo_moment_match = FALSE,
+                         loo_reloo = FALSE,
+                         loo_k_threshold = 0.7,
+                         loo_auto_moment_match = TRUE,
                          include_ppc = FALSE,
                          ppc_ndraws = 200,
                          ppc_probs = c(0.025, 0.975),
@@ -91,6 +106,24 @@ loftest_brsm <- function(object,
   reference_type <- match.arg(reference_type)
   criterion <- match.arg(criterion)
   sampling_preset <- match.arg(sampling_preset)
+
+  if (!is.logical(loo_moment_match) || length(loo_moment_match) != 1L ||
+      is.na(loo_moment_match)) {
+    stop("loo_moment_match must be a non-missing TRUE/FALSE value.")
+  }
+  if (!is.logical(loo_reloo) || length(loo_reloo) != 1L ||
+      is.na(loo_reloo)) {
+    stop("loo_reloo must be a non-missing TRUE/FALSE value.")
+  }
+  if (!is.numeric(loo_k_threshold) || length(loo_k_threshold) != 1L ||
+      !is.finite(loo_k_threshold) || loo_k_threshold <= 0) {
+    stop("loo_k_threshold must be a finite numeric scalar > 0.")
+  }
+  if (!is.logical(loo_auto_moment_match) ||
+      length(loo_auto_moment_match) != 1L ||
+      is.na(loo_auto_moment_match)) {
+    stop("loo_auto_moment_match must be a non-missing TRUE/FALSE value.")
+  }
 
   baseline_fit <- .brsm_extract_fit(object, caller = "loftest_brsm")
   reference_fitted <- FALSE
@@ -197,10 +230,52 @@ loftest_brsm <- function(object,
 
   reference_fit <- .brsm_extract_fit(reference_model, caller = "loftest_brsm")
 
-  comparison <- compare_brsm_models(
+  compare_args <- list(
     models = list(baseline = baseline_fit, reference = reference_fit),
     criterion = criterion
   )
+  if (criterion == "loo") {
+    compare_args$moment_match <- loo_moment_match
+    compare_args$reloo <- loo_reloo
+  }
+
+  comparison <- do.call(compare_brsm_models, compare_args)
+
+  loo_diagnostics <- NULL
+  auto_retry_used <- FALSE
+  if (criterion == "loo") {
+    initial_diag <- .brsm_summarize_pareto_k(
+      estimates = comparison$estimates,
+      threshold = loo_k_threshold
+    )
+
+    if (isTRUE(loo_auto_moment_match) &&
+        !isTRUE(loo_moment_match) &&
+        isTRUE(initial_diag$has_high_k)) {
+      message(
+        "Found Pareto-k values above ", loo_k_threshold,
+        "; retrying LOO with moment_match = TRUE."
+      )
+      compare_args$moment_match <- TRUE
+      comparison <- do.call(compare_brsm_models, compare_args)
+      auto_retry_used <- TRUE
+      loo_moment_match <- TRUE
+    }
+
+    final_diag <- .brsm_summarize_pareto_k(
+      estimates = comparison$estimates,
+      threshold = loo_k_threshold
+    )
+
+    loo_diagnostics <- list(
+      k_threshold = loo_k_threshold,
+      initial = initial_diag,
+      final = final_diag,
+      moment_match_used = isTRUE(loo_moment_match),
+      reloo_used = isTRUE(loo_reloo),
+      auto_moment_match_retry = auto_retry_used
+    )
+  }
 
   out <- list(
     criterion = criterion,
@@ -210,6 +285,10 @@ loftest_brsm <- function(object,
     reference_type = reference_type,
     reference_fitted = reference_fitted
   )
+
+  if (!is.null(loo_diagnostics)) {
+    out$loo_diagnostics <- loo_diagnostics
+  }
 
   if (isTRUE(include_ppc)) {
     ppc_base <- check_brsm_ppc(
@@ -241,6 +320,57 @@ loftest_brsm <- function(object,
   }
 
   out
+}
+
+
+#' @keywords internal
+.brsm_summarize_pareto_k <- function(estimates, threshold = 0.7) {
+  if (!is.list(estimates) || length(estimates) == 0) {
+    return(list(
+      has_high_k = FALSE,
+      max_pareto_k = NA_real_,
+      max_pareto_k_by_model = numeric(0),
+      n_above_threshold_by_model = integer(0)
+    ))
+  }
+
+  model_names <- names(estimates)
+  if (is.null(model_names) || any(model_names == "")) {
+    model_names <- paste0("model_", seq_along(estimates))
+  }
+
+  max_by_model <- stats::setNames(rep(NA_real_, length(estimates)), model_names)
+  n_above_by_model <- stats::setNames(rep(0L, length(estimates)), model_names)
+
+  for (i in seq_along(estimates)) {
+    est <- estimates[[i]]
+    pareto_k <- tryCatch(est$diagnostics$pareto_k, error = function(e) NULL)
+    if (is.null(pareto_k)) {
+      next
+    }
+
+    pareto_k <- as.numeric(pareto_k)
+    pareto_k <- pareto_k[is.finite(pareto_k)]
+    if (length(pareto_k) == 0L) {
+      next
+    }
+
+    max_by_model[i] <- max(pareto_k)
+    n_above_by_model[i] <- sum(pareto_k > threshold)
+  }
+
+  max_overall <- if (all(is.na(max_by_model))) {
+    NA_real_
+  } else {
+    max(max_by_model, na.rm = TRUE)
+  }
+
+  list(
+    has_high_k = any(n_above_by_model > 0L),
+    max_pareto_k = max_overall,
+    max_pareto_k_by_model = max_by_model,
+    n_above_threshold_by_model = n_above_by_model
+  )
 }
 
 

@@ -1,3 +1,23 @@
+#' Plot Posterior Distribution of the Optimum
+#'
+#' @param draws Validated draw data frame.
+#' @param factor_names Character vector of factor names (exactly 2).
+#' @param stationary_draws Optional precomputed stationary draws.
+#' @param bins Number of density bins.
+#' @param levels Number of density contour levels.
+#' @param alpha Transparency for density fill.
+#' @param show_points Logical; if TRUE, overlay posterior sample points.
+#' @param point_alpha Transparency for point overlay.
+#' @param seed Random seed.
+#'
+#' @return A ggplot2 object.
+#'
+#' @details
+#' Density fills use the viridis "turbo" palette, which is perceptually uniform
+#' and colorblind-safe. Density contour lines are drawn in black for contrast.
+#' The posterior mean optimum is marked with a red cross symbol. This plot is only
+#' available for optimization_geometry mode (when quadratic terms are present).
+#' @keywords internal
 plot_optimum_posterior <- function(draws,
                                    factor_names,
                                    stationary_draws = NULL,
@@ -84,6 +104,7 @@ plot_optimum_posterior <- function(draws,
       alpha = alpha,
       contour_var = "ndensity"
     ) +
+    viridis::scale_fill_viridis(discrete = TRUE, option = "turbo") +
     ggplot2::stat_density_2d(
       color = "black",
       bins = levels,

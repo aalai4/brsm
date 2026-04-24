@@ -20,6 +20,7 @@ RoxygenNote: 7.3.3
 Imports:
     stats,
     ggplot2,
+    viridis,
     Rcpp
 LinkingTo:
     Rcpp
