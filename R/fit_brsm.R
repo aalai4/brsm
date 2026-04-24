@@ -21,6 +21,11 @@
 #'   \code{"rstan"}, \code{"cmdstanr"}). If \code{NULL}, uses brms defaults.
 #' @param control Optional named list of NUTS control arguments. Values here
 #'   override defaults from \code{sampling_preset}.
+#' @param model_terms Polynomial term specification. One of
+#'   \\code{"second_order"} (default; linear + two-way interactions +
+#'   pure quadratic terms), \\code{"first_order"} (linear only),
+#'   \\code{"first_order_twi"} (linear + two-way interactions), or
+#'   \\code{"pure_quadratic"} (linear + pure quadratic terms).
 #' @param coding_policy How to handle missing coding metadata from
 #'   [prepare_brsm_data()]. One of \code{"warn"} (default),
 #'   \code{"error"}, or \code{"ignore"}.
@@ -28,7 +33,7 @@
 #'
 #' @return An object of class \code{brsm_fit} with elements:
 #'   \code{fit}, \code{formula}, \code{response}, \code{factor_names},
-#'   \code{ranges}, and \code{call}.
+#'   \\code{ranges}, \\code{model_terms}, and \\code{call}.
 #'
 #' @examples
 #' \dontrun{
@@ -71,6 +76,10 @@ fit_brsm <- function(data,
                      sampling_preset = c("fast", "balanced", "robust"),
                      backend = NULL,
                      control = NULL,
+                     model_terms = c(
+                       "second_order", "first_order",
+                       "first_order_twi", "pure_quadratic"
+                     ),
                      coding_policy = c("warn", "error", "ignore"),
                      ...) {
   if (!requireNamespace("brms", quietly = TRUE)) {
@@ -89,6 +98,7 @@ fit_brsm <- function(data,
   }
 
   sampling_preset <- match.arg(sampling_preset)
+  model_terms <- match.arg(model_terms)
 
   if (!is.null(control) && !is.list(control)) {
     stop("control must be NULL or a named list.")
@@ -149,7 +159,17 @@ fit_brsm <- function(data,
   }
   quadratic_terms <- paste0("I(", factor_names, "^2)")
 
-  rhs_terms <- c(linear_terms, interaction_terms, quadratic_terms)
+  rhs_terms <- switch(model_terms,
+    first_order = linear_terms,
+    first_order_twi = c(linear_terms, interaction_terms),
+    pure_quadratic = c(linear_terms, quadratic_terms),
+    second_order = c(linear_terms, interaction_terms, quadratic_terms)
+  )
+
+  if (length(rhs_terms) == 0L) {
+    stop("No model terms selected. Check model_terms and factor_names.")
+  }
+
   formula_text <- paste(response, "~", paste(rhs_terms, collapse = " + "))
   model_formula <- stats::as.formula(formula_text)
 
@@ -178,6 +198,7 @@ fit_brsm <- function(data,
     factor_names = factor_names,
     ranges = ranges,
     coding = coding,
+    model_terms = model_terms,
     sampling = list(
       sampling_preset = sampling_preset,
       control = control,

@@ -8,7 +8,7 @@
 #' coefficient columns (\code{b_Intercept}, \code{b_x1}, \code{b_I(x1^2)},
 #' interactions, etc.).
 #'
-#' If \code{fit_mode} is \code{"fit_brsm"} or \code{"fit_brsm_congruence"},
+#' If \code{fit_mode} is \code{"fit_brsm"},
 #' then \code{object} is treated as raw input data and model fitting is done
 #' internally before running selected workflow steps.
 #'
@@ -26,18 +26,30 @@
 #' @param step_size Step size for steepest ascent.
 #' @param n_steps Number of steps for steepest ascent.
 #' @param include_plots Logical; if `TRUE`, generate contour/optimum/ridge plots
-#'   when exactly two factors are provided.
+#'   when exactly two factors are provided. For non-quadratic draw objects,
+#'   contour plots are returned with a steepest-ascent direction overlay and
+#'   optimization-geometry plots are omitted.
 #' @param contour_type Surface type for contour plotting. Passed to
 #'   [plot_posterior_contours()].
+#' @param plot_vary_factors Optional character vector of length 2 specifying
+#'   which factors vary in contour plots when `length(factor_names) > 2` and
+#'   `plot_pairwise = FALSE`. Defaults to the first two factors.
+#' @param plot_fixed Optional named numeric vector of fixed values used when
+#'   `plot_conditioning = "user"`.
+#' @param plot_conditioning Conditioning strategy for non-varied factors in
+#'   contour plots. One of `"center"`, `"optimum_mean"`, or `"user"`.
+#' @param plot_slice Optional named list with one element specifying sliced
+#'   values for a conditioning factor, e.g. `list(x3 = c(-1, 0, 1))`.
+#' @param plot_pairwise Logical; if `TRUE`, generate pairwise contour panels for
+#'   all factor pairs.
 #' @param seed Optional random seed used for stochastic plotting operations.
-#' @param fit_mode One of `"none"`, `"fit_brsm"`, or
-#'   `"fit_brsm_congruence"`. Use `"none"` (default) to analyze an existing
+#' @param fit_mode One of `"none"` or `"fit_brsm"`. Use `"none"` (default) to analyze an existing
 #'   Bayesian fit/draw object. Use a fit mode to fit from raw data in `object`
 #'   and then run the workflow.
 #' @param response Required when `fit_mode != "none"`. Name of the response
 #'   column in raw input data.
 #' @param fit_args Named list of additional arguments forwarded to
-#'   [fit_brsm()] or [fit_brsm_congruence()] when `fit_mode != "none"`.
+#'   [fit_brsm()] when `fit_mode != "none"`.
 #'   This enables custom priors and sampling controls without re-writing the
 #'   pipeline manually.
 #' @param steps Character vector selecting which workflow stages to run. Any of
@@ -49,6 +61,9 @@
 #'   always `draws`, and conditionally `fit`, `ranges`, `grid`, `predictions`,
 #'   `surface`, `stationary_points`, `classification`, `credible_region`,
 #'   `steepest_ascent`, `ridge_analysis`, and `plots` depending on `steps`.
+#'   When plots are produced, `plots` also includes
+#'   `plot_mode` (`"optimization_geometry"` or `"direction_only"`) and
+#'   `geometry_available` (logical).
 #'
 #' @examples
 #' set.seed(1)
@@ -87,10 +102,15 @@ brsm_workflow <- function(object,
                           n_steps = 10,
                           include_plots = TRUE,
                           contour_type = c("mean", "uncertainty", "quantile"),
-                          seed = NULL,
-                          fit_mode = c(
-                            "none", "fit_brsm", "fit_brsm_congruence"
+                          plot_vary_factors = NULL,
+                          plot_fixed = NULL,
+                          plot_conditioning = c(
+                            "center", "optimum_mean", "user"
                           ),
+                          plot_slice = NULL,
+                          plot_pairwise = FALSE,
+                          seed = NULL,
+                          fit_mode = c("none", "fit_brsm"),
                           response = NULL,
                           fit_args = list(),
                           steps = c(
@@ -100,6 +120,7 @@ brsm_workflow <- function(object,
                           )) {
   factor_names <- .brsm_validate_factor_names(factor_names)
   contour_type <- match.arg(contour_type)
+  plot_conditioning <- match.arg(plot_conditioning)
   fit_mode <- match.arg(fit_mode)
 
   if (!is.list(fit_args)) {
@@ -156,11 +177,7 @@ brsm_workflow <- function(object,
     )
     merged_fit_args <- utils::modifyList(base_fit_args, fit_args)
 
-    if (fit_mode == "fit_brsm") {
-      fitted_model <- do.call(fit_brsm, merged_fit_args)
-    } else {
-      fitted_model <- do.call(fit_brsm_congruence, merged_fit_args)
-    }
+    fitted_model <- do.call(fit_brsm, merged_fit_args)
     workflow_object <- fitted_model
   }
 
@@ -176,7 +193,16 @@ brsm_workflow <- function(object,
     start <- stats::setNames(rep(0, length(factor_names)), factor_names)
   }
 
-  draws <- as_brsm_draws(workflow_object, factor_names = factor_names)
+  draws <- if (is.data.frame(workflow_object)) {
+    as_brsm_draws.data.frame(
+      workflow_object,
+      factor_names = factor_names,
+      require_quadratic = FALSE,
+      require_interactions = FALSE
+    )
+  } else {
+    as_brsm_draws(workflow_object, factor_names = factor_names)
+  }
 
   draws_complete <- stats::complete.cases(draws)
   if (!all(draws_complete)) {
@@ -194,6 +220,27 @@ brsm_workflow <- function(object,
       " missing/non-finite coefficients. ",
       "Check model specification for rank deficiency or missing coefficients."
     )
+  }
+
+  has_full_quadratic <- all(vapply(
+    factor_names,
+    function(f) {
+      qcol <- .brsm_find_quadratic_col(f, colnames(draws))
+      !is.na(qcol) && qcol != ""
+    },
+    logical(1)
+  ))
+
+  geometry_steps <- c("stationary", "classification", "credible_region", "ridge")
+  unsupported_steps <- intersect(steps, geometry_steps)
+  if (!has_full_quadratic && length(unsupported_steps) > 0) {
+    warning(
+      "Skipping geometry-dependent step(s) because quadratic terms are ",
+      "missing in draws: ",
+      paste(unsupported_steps, collapse = ", "),
+      "."
+    )
+    steps <- setdiff(steps, unsupported_steps)
   }
 
   if (is.null(ranges) &&
@@ -245,10 +292,12 @@ brsm_workflow <- function(object,
     out$surface <- predictions
   }
 
-  needs_stationary <- "stationary" %in% steps ||
-    "classification" %in% steps ||
-    "credible_region" %in% steps ||
-    "plots" %in% steps
+  needs_stationary <- has_full_quadratic && (
+    "stationary" %in% steps ||
+      "classification" %in% steps ||
+      "credible_region" %in% steps ||
+      "plots" %in% steps
+  )
   if (needs_stationary) {
     stationary <- stationary_point(
       object = dispatch_object,
@@ -286,7 +335,7 @@ brsm_workflow <- function(object,
     )
   }
 
-  if ("ridge" %in% steps || "plots" %in% steps) {
+  if (has_full_quadratic && ("ridge" %in% steps || "plots" %in% steps)) {
     ridge_full <- posterior_ridge_analysis(
       object = dispatch_object,
       factor_names = factor_names,
@@ -305,8 +354,36 @@ brsm_workflow <- function(object,
   }
 
   if ("plots" %in% steps) {
-    if (length(factor_names) == 2 && !is.null(ranges)) {
-      if (is.null(stationary)) {
+    if (length(factor_names) >= 2 && !is.null(ranges)) {
+      overlay_stationary <- has_full_quadratic
+      contour_overlay_stationary <- overlay_stationary &&
+        !isTRUE(plot_pairwise) &&
+        is.null(plot_slice)
+
+      selected_plot_pair <- if (!is.null(plot_vary_factors)) {
+        .brsm_validate_factor_names(
+          plot_vary_factors,
+          require_two = TRUE,
+          two_factors_message =
+            "plot_vary_factors must contain exactly two factors."
+        )
+      } else {
+        factor_names[1:2]
+      }
+
+      if (!all(selected_plot_pair %in% factor_names)) {
+        stop("plot_vary_factors must be a subset of factor_names.")
+      }
+
+      optimization_pairs <- if (length(factor_names) == 2L) {
+        list(factor_names)
+      } else if (isTRUE(plot_pairwise)) {
+        utils::combn(factor_names, 2, simplify = FALSE)
+      } else {
+        list(selected_plot_pair)
+      }
+
+      if (overlay_stationary && is.null(stationary)) {
         stationary <- stationary_point(
           object = dispatch_object,
           factor_names = factor_names
@@ -319,19 +396,124 @@ brsm_workflow <- function(object,
           ranges = ranges,
           n = grid_n,
           type = contour_type,
-          overlay_stationary = TRUE,
-          stationary_draws = stationary,
-          seed = seed
-        ),
-        optimum = plot_optimum_posterior(
-          draws = draws,
-          factor_names = factor_names,
+          vary_factors = plot_vary_factors,
+          fixed = plot_fixed,
+          conditioning = plot_conditioning,
+          slice = plot_slice,
+          pairwise = plot_pairwise,
+          overlay_stationary = contour_overlay_stationary,
           stationary_draws = stationary,
           seed = seed
         )
       )
 
-      if (!is.null(ridge_full)) {
+      plots$plot_mode <- if (overlay_stationary) {
+        "optimization_geometry"
+      } else {
+        "direction_only"
+      }
+      plots$geometry_available <- overlay_stationary
+
+      if (overlay_stationary && length(factor_names) == 2L) {
+        plots$optimum <- plot_optimum_posterior(
+          draws = draws,
+          factor_names = factor_names,
+          stationary_draws = stationary,
+          seed = seed
+        )
+      } else if (overlay_stationary && length(factor_names) > 2L) {
+        optimum_plots <- lapply(optimization_pairs, function(pair) {
+          stationary_pair <- stationary[, pair, drop = FALSE]
+          p <- plot_optimum_posterior(
+            draws = draws,
+            factor_names = pair,
+            stationary_draws = stationary_pair,
+            seed = seed
+          )
+          p + ggplot2::labs(
+            subtitle = paste0("Projection: ", pair[1], " vs ", pair[2])
+          )
+        })
+        names(optimum_plots) <- vapply(
+          optimization_pairs,
+          function(pair) paste(pair, collapse = "_"),
+          character(1)
+        )
+
+        if (length(optimum_plots) == 1L) {
+          plots$optimum <- optimum_plots[[1L]]
+        } else {
+          plots$optimum_pairwise <- optimum_plots
+        }
+      } else {
+        warning(
+          "Skipping optimum/ridge plot overlays because stationary points ",
+          "are undefined without quadratic terms."
+        )
+
+        sa_plot <- if (!is.null(out$steepest_ascent)) {
+          out$steepest_ascent
+        } else {
+          steepest_ascent(
+            object = dispatch_object,
+            factor_names = factor_names,
+            start = start,
+            step_size = step_size,
+            n_steps = n_steps
+          )
+        }
+
+        mean_path <- sa_plot$mean_path
+        if (!is.null(mean_path) &&
+          nrow(mean_path) > 1 &&
+          all(factor_names %in% names(mean_path))) {
+          plots$contours <- plots$contours +
+            ggplot2::geom_path(
+              data = mean_path,
+              ggplot2::aes(
+                x = .data[[factor_names[1]]],
+                y = .data[[factor_names[2]]]
+              ),
+              inherit.aes = FALSE,
+              color = "black",
+              linewidth = 1
+            ) +
+            ggplot2::geom_point(
+              data = mean_path,
+              ggplot2::aes(
+                x = .data[[factor_names[1]]],
+                y = .data[[factor_names[2]]]
+              ),
+              inherit.aes = FALSE,
+              color = "red",
+              size = 2
+            )
+
+          plots$direction <- ggplot2::ggplot(
+            mean_path,
+            ggplot2::aes(
+              x = .data[[factor_names[1]]],
+              y = .data[[factor_names[2]]]
+            )
+          ) +
+            ggplot2::geom_path(color = "black", linewidth = 1) +
+            ggplot2::geom_point(color = "red", size = 2) +
+            ggplot2::labs(
+              x = factor_names[1],
+              y = factor_names[2],
+              title = "Posterior Mean Direction Path",
+              subtitle = "Steepest-ascent mean path for non-quadratic model"
+            ) +
+            ggplot2::theme_minimal()
+        } else {
+          warning(
+            "Direction overlay could not be drawn because a mean ",
+            "steepest-ascent path was unavailable."
+          )
+        }
+      }
+
+      if (!is.null(ridge_full) && length(factor_names) == 2L) {
         ridge_df <- ridge_full[, c(factor_names, "radius"), drop = FALSE]
         ridge_df <- ridge_df[stats::complete.cases(ridge_df), , drop = FALSE]
 
@@ -343,13 +525,42 @@ brsm_workflow <- function(object,
             show_draws = TRUE
           )
         }
+      } else if (!is.null(ridge_full) && length(factor_names) > 2L) {
+        ridge_plots <- lapply(optimization_pairs, function(pair) {
+          ridge_df <- ridge_full[, c(pair, "radius"), drop = FALSE]
+          ridge_df <- ridge_df[stats::complete.cases(ridge_df), , drop = FALSE]
+          if (nrow(ridge_df) == 0) {
+            return(NULL)
+          }
+          p <- plot_ridge_path(
+            ridge_draws = ridge_df,
+            factor_names = pair,
+            response = "radius",
+            show_draws = TRUE
+          )
+          p + ggplot2::labs(
+            subtitle = paste0("Projection: ", pair[1], " vs ", pair[2])
+          )
+        })
+        names(ridge_plots) <- vapply(
+          optimization_pairs,
+          function(pair) paste(pair, collapse = "_"),
+          character(1)
+        )
+        ridge_plots <- Filter(Negate(is.null), ridge_plots)
+
+        if (length(ridge_plots) == 1L) {
+          plots$ridge_path <- ridge_plots[[1L]]
+        } else if (length(ridge_plots) > 1L) {
+          plots$ridge_path_pairwise <- ridge_plots
+        }
       }
 
       out$plots <- plots
     } else {
       warning(
         "plots step ignored because plotting currently",
-        " requires exactly two factors and valid ranges."
+        " requires at least two factors and valid ranges."
       )
     }
   }

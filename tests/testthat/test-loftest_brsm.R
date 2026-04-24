@@ -401,3 +401,67 @@ test_that("loftest_brsm comparison returns LOO and/or WAIC", {
   expect_true(is.data.frame(result_loo$comparison$comparison))
   expect_true(is.data.frame(result_waic$comparison$comparison))
 })
+
+test_that("loftest_brsm validates loo_* arguments", {
+  skip_if_not_installed("brms")
+
+  expect_error(
+    loftest_brsm(
+      object = list(),
+      loo_k_threshold = 0
+    ),
+    "loo_k_threshold must be a finite numeric scalar > 0"
+  )
+
+  expect_error(
+    loftest_brsm(
+      object = list(),
+      loo_moment_match = NA
+    ),
+    "loo_moment_match must be a non-missing TRUE/FALSE value"
+  )
+
+  expect_error(
+    loftest_brsm(
+      object = list(),
+      loo_reloo = NA
+    ),
+    "loo_reloo must be a non-missing TRUE/FALSE value"
+  )
+
+  expect_error(
+    loftest_brsm(
+      object = list(),
+      loo_auto_moment_match = NA
+    ),
+    "loo_auto_moment_match must be a non-missing TRUE/FALSE value"
+  )
+})
+
+test_that("loftest_brsm returns loo_diagnostics for LOO", {
+  skip_if_no_brms_tests()
+
+  result <- loftest_brsm(
+    object = .get_loftest_baseline(seed = 316),
+    reference_type = "cubic",
+    criterion = "loo",
+    loo_auto_moment_match = FALSE,
+    loo_k_threshold = 0.7,
+    include_ppc = FALSE,
+    chains = 1,
+    iter = 250,
+    warmup = 125,
+    seed = 316,
+    sampling_preset = "fast",
+    refresh = 0,
+    silent = 2
+  )
+
+  expect_true("loo_diagnostics" %in% names(result))
+  expect_equal(result$loo_diagnostics$k_threshold, 0.7)
+  expect_true("initial" %in% names(result$loo_diagnostics))
+  expect_true("final" %in% names(result$loo_diagnostics))
+  expect_true("moment_match_used" %in% names(result$loo_diagnostics))
+  expect_true("reloo_used" %in% names(result$loo_diagnostics))
+  expect_true("auto_moment_match_retry" %in% names(result$loo_diagnostics))
+})

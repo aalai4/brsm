@@ -204,11 +204,12 @@
     return(found[[1L]])
   }
 
-  f_escaped <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\\\\\1", f)
-  idx <- grep(
-    paste0("^b_?I.*", f_escaped, ".*(\\\\^2|E2|\\\\.2\\\\.?|2\\\\)?)$"),
-    draw_cols,
-    perl = TRUE
+  idx <- which(
+    startsWith(draw_cols, "b_I") &
+      grepl(f, draw_cols, fixed = TRUE) &
+      (grepl("\\\\^2\\\\)", draw_cols) |
+        grepl("E2", draw_cols, fixed = TRUE) |
+        grepl("\\\\.2\\\\.?", draw_cols))
   )
 
   if (length(idx) == 0L) NA_character_ else draw_cols[idx[[1L]]]

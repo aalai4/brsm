@@ -22,11 +22,6 @@ print.brsm_fit <- function(x, ...) {
   cat("Response Variable: ", x$response, "\n")
   cat("Factor Variables:  ", paste(x$factor_names, collapse = ", "), "\n")
 
-  # Congruence type if present
-  if (!is.null(x$congruence_type)) {
-    cat("Congruence Type:   ", x$congruence_type, "\n")
-  }
-
   if (!is.null(x$coding) && is.list(x$coding) && !is.null(x$coding$method)) {
     cat("Coding Method:     ", x$coding$method, "\n")
     cat("Coding Stored:     yes\n")
@@ -95,9 +90,8 @@ print.brsm_fit <- function(x, ...) {
 #' @param ... Additional arguments passed to \code{brms::summary.brmsfit()}.
 #'
 #' @return An object of class \code{summary.brsm_fit} containing:
-#'   \code{brsm_fit_obj} (the original brsm_fit object),
-#'   \code{brmsfit_summary} (summary of the underlying brmsfit),
-#'   and \code{congruence_type} (if applicable).
+#'   \code{brsm_fit_obj} (the original brsm_fit object) and
+#'   \code{brmsfit_summary} (summary of the underlying brmsfit).
 #'
 #' @keywords internal
 #' @export
@@ -117,7 +111,6 @@ summary.brsm_fit <- function(object, ...) {
     formula = object$formula,
     response = object$response,
     factor_names = object$factor_names,
-    congruence_type = object$congruence_type,
     coding = object$coding,
     ranges = object$ranges,
     sampling = object$sampling
@@ -150,10 +143,6 @@ print.summary.brsm_fit <- function(x, ...) {
 
   cat("Response:     ", x$response, "\n")
   cat("Factors:      ", paste(x$factor_names, collapse = ", "), "\n")
-
-  if (!is.null(x$congruence_type)) {
-    cat("Congruence:   ", x$congruence_type, "\n")
-  }
 
   if (!is.null(x$coding) && is.list(x$coding) && !is.null(x$coding$method)) {
     cat("Coding:       ", x$coding$method, " (stored)\n")

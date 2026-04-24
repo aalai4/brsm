@@ -14,8 +14,7 @@
 \value{
 An object of class \code{summary.brsm_fit} containing:
   \code{brsm_fit_obj} (the original brsm_fit object),
-  \code{brmsfit_summary} (summary of the underlying brmsfit),
-  and \code{congruence_type} (if applicable).
+  and \code{brmsfit_summary} (summary of the underlying brmsfit).
 }
 \description{
 Display a detailed summary of a fitted Bayesian response surface model,

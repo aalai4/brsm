@@ -9,6 +9,10 @@ loftest_brsm(
   reference_model = NULL,
   reference_type = c("cubic", "extended"),
   criterion = c("loo", "waic"),
+  loo_moment_match = FALSE,
+  loo_reloo = FALSE,
+  loo_k_threshold = 0.7,
+  loo_auto_moment_match = TRUE,
   include_ppc = FALSE,
   ppc_ndraws = 200,
   ppc_probs = c(0.025, 0.975),
@@ -39,6 +43,20 @@ or \code{"extended"} (adds cubic and quadratic-by-linear terms).}
 
 \item{criterion}{Information criterion for model comparison: \code{"loo"}
 (default) or \code{"waic"}.}
+
+\item{loo_moment_match}{Logical; when \code{criterion = "loo"}, pass
+\code{moment_match} to [brms::loo()] via [compare_brsm_models()].}
+
+\item{loo_reloo}{Logical; when \code{criterion = "loo"}, pass
+\code{reloo} to [brms::loo()] via [compare_brsm_models()].}
+
+\item{loo_k_threshold}{Pareto-k threshold used to flag unstable LOO
+diagnostics when \code{criterion = "loo"}. Defaults to \code{0.7}.}
+
+\item{loo_auto_moment_match}{Logical; when \code{TRUE} and
+\code{criterion = "loo"}, automatically re-run model comparison with
+\code{moment_match = TRUE} if any Pareto-k values exceed
+\code{loo_k_threshold}.}
 
 \item{include_ppc}{Logical; if \code{TRUE}, compute
 [check_brsm_ppc()] for both baseline and reference models.}
@@ -86,8 +104,9 @@ the reference model.}
 A list with components:
   \code{criterion}, \code{comparison} (from [compare_brsm_models()]),
   \code{baseline_model}, \code{reference_model}, \code{reference_type},
-  \code{reference_fitted} (logical), and optional \code{ppc} list with
-  side-by-side summaries.
+  \code{reference_fitted} (logical), optional \code{loo_diagnostics} (for
+  \code{criterion = "loo"}), and optional \code{ppc} list with side-by-side
+  summaries.
 }
 \description{
 Runs a Bayesian lack-of-fit style check by comparing a baseline model against

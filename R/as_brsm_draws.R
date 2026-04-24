@@ -42,7 +42,24 @@ as_brsm_draws.brsm_fit <- function(object, factor_names = NULL, ...) {
   if (is.null(factor_names)) {
     factor_names <- object$factor_names
   }
-  as_brsm_draws.brmsfit(object$fit, factor_names = factor_names, ...)
+
+  model_terms <- object$model_terms
+  if (is.null(model_terms)) {
+    model_terms <- "second_order"
+  }
+
+  require_quadratic <- model_terms %in% c("second_order", "pure_quadratic")
+  require_interactions <- model_terms %in% c("second_order", "first_order_twi")
+
+  draws_raw <- as.data.frame(object$fit, ...)
+  draws <- as_brsm_draws.data.frame(
+    draws_raw,
+    factor_names = factor_names,
+    require_quadratic = require_quadratic,
+    require_interactions = require_interactions
+  )
+  rownames(draws) <- NULL
+  draws
 }
 
 #' @rdname as_brsm_draws
@@ -108,7 +125,11 @@ as_brsm_draws.brmsfit <- function(object, factor_names = NULL, ...) {
 
 #' @rdname as_brsm_draws
 #' @export
-as_brsm_draws.data.frame <- function(object, factor_names, ...) {
+as_brsm_draws.data.frame <- function(object,
+                                     factor_names,
+                                     require_quadratic = TRUE,
+                                     require_interactions = TRUE,
+                                     ...) {
   # Assume data frame is already in the right format or needs column renaming
   # Try to detect and rename if necessary
   df <- object
@@ -126,14 +147,14 @@ as_brsm_draws.data.frame <- function(object, factor_names, ...) {
   }
 
   # Check if already in brsm format
-  required_cols <- c(
-    "b_Intercept",
-    paste0("b_", factor_names),
-    paste0("b_I(", factor_names, "^2)")
-  )
+  required_cols <- c("b_Intercept", paste0("b_", factor_names))
+  if (isTRUE(require_quadratic)) {
+    required_cols <- c(required_cols, paste0("b_I(", factor_names, "^2)"))
+  }
 
   # Detect and include interaction columns among factor_names.
   interaction_cols <- character(0)
+  missing_interactions <- character(0)
   if (length(factor_names) > 1) {
     for (i in seq_len(length(factor_names) - 1)) {
       for (j in (i + 1):length(factor_names)) {
@@ -157,6 +178,8 @@ as_brsm_draws.data.frame <- function(object, factor_names, ...) {
             interaction_col <- canonical_interaction
           }
           interaction_cols <- c(interaction_cols, interaction_col)
+        } else if (isTRUE(require_interactions)) {
+          missing_interactions <- c(missing_interactions, paste0("b_", f1, ":", f2))
         }
       }
     }
@@ -170,6 +193,7 @@ as_brsm_draws.data.frame <- function(object, factor_names, ...) {
   # Return only brsm-format columns
   brsm_cols <- intersect(keep_cols, names(df_renamed))
   missing_required <- setdiff(required_cols, brsm_cols)
+  missing_required <- unique(c(missing_required, missing_interactions))
 
   if (length(missing_required) > 0) {
     stop(
