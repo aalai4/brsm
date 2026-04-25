@@ -1,16 +1,15 @@
 #' Run a Complete BRSM Analysis Workflow
 #'
-#' Executes a full response-surface workflow from model/draw conversion through
-#' prediction, optimization diagnostics, and optional plots.
+#' Runs a response-surface workflow from model/draw conversion through
+#' prediction, diagnostics, and optional plots.
 #'
 #' By default (\code{fit_mode = "none"}), input must be Bayesian:
 #' \code{brsm_fit}, \code{brmsfit}, or posterior-draw data frame with required
 #' coefficient columns (\code{b_Intercept}, \code{b_x1}, \code{b_I(x1^2)},
 #' interactions, etc.).
 #'
-#' If \code{fit_mode} is \code{"fit_brsm"},
-#' then \code{object} is treated as raw input data and model fitting is done
-#' internally before running selected workflow steps.
+#' If \code{fit_mode} is \code{"fit_brsm"}, \code{object} is treated as raw
+#' input data and fitting is performed before selected workflow steps run.
 #'
 #' @param object Either (1) a \code{brsm_fit} object from [fit_brsm()],
 #'   (2) a \code{brmsfit} object from \code{brms::brm()},
@@ -44,14 +43,13 @@
 #'   all factor pairs.
 #' @param seed Optional random seed used for stochastic plotting operations.
 #' @param fit_mode One of `"none"` or `"fit_brsm"`. Use `"none"` (default) to analyze an existing
-#'   Bayesian fit/draw object. Use a fit mode to fit from raw data in `object`
-#'   and then run the workflow.
+#'   Bayesian fit/draw object. Use `"fit_brsm"` to fit from raw data in
+#'   \code{object} and then run the workflow.
 #' @param response Required when `fit_mode != "none"`. Name of the response
 #'   column in raw input data.
 #' @param fit_args Named list of additional arguments forwarded to
 #'   [fit_brsm()] when `fit_mode != "none"`.
-#'   This enables custom priors and sampling controls without re-writing the
-#'   pipeline manually.
+#'   Useful for custom priors and sampling controls.
 #' @param steps Character vector selecting which workflow stages to run. Any of
 #'   `"predictions"`, `"stationary"`, `"classification"`,
 #'   `"credible_region"`, `"steepest_ascent"`, `"ridge"`, `"plots"`.

@@ -1,10 +1,9 @@
 #' Canonical Analysis of Bayesian Response Surface
 #'
-#' Performs canonical analysis by computing the eigendecomposition of the
-#' Hessian matrix (B matrix) of the quadratic response surface across all
-#' posterior draws. Returns posterior distributions of principal curvatures
-#' (eigenvalues) and canonical axes (eigenvectors), along with canonical factor
-#' scores at the stationary point.
+#' Computes the eigendecomposition of the quadratic Hessian (\eqn{\mathbf{B}})
+#' across posterior draws. Returns principal curvatures (eigenvalues),
+#' canonical axes (eigenvectors), and optional canonical scores at the
+#' stationary point.
 #'
 #' The Hessian \eqn{\mathbf{B}} of the quadratic surface
 #' \eqn{y = \beta_0 + \mathbf{b}^\top\mathbf{x} + \mathbf{x}^\top\mathbf{B}\mathbf{x}}
@@ -35,7 +34,7 @@
 #'
 #'   When \code{summary = FALSE}: a list with components \code{eigenvalues}
 #'   (draws × p matrix), \code{eigenvectors} (draws × p × p array), and
-#'   optionally \code{scores} (draws × p matrix of canonical factor scores).
+#'   optionally \code{scores} (draws × p matrix).
 #'
 #' @examples
 #' \dontrun{
@@ -179,23 +178,24 @@ canonical_analysis.default <- function(object,
       b_mat <- as.matrix(draws[, linear_cols, drop = FALSE])
       storage.mode(b_mat) <- "numeric"
 
+      x_star_mat <- stationary_points_batch(
+        h_array = H,
+        b_matrix = b_mat,
+        kappa_thresh = as.numeric(kappa_thresh)
+      )
+
       scores <- matrix(NA_real_, nrow = n_draws, ncol = p)
       colnames(scores) <- paste0("z_", seq_len(p))
 
       for (d in seq_len(n_draws)) {
-        H_d <- H[d, , ]
-        if (kappa(H_d) > kappa_thresh) next
-        x_star <- tryCatch(
-          -0.5 * solve(H_d, b_mat[d, ]),
-          error = function(e) NULL
-        )
-        if (is.null(x_star) || any(is.na(x_star))) next
+        x_star <- x_star_mat[d, ]
+        if (any(!is.finite(x_star))) next
         M <- eigenvectors[d, , ]
         if (any(is.na(M))) next
         scores[d, ] <- as.numeric(t(M) %*% x_star)
       }
 
-      n_score_fail <- sum(apply(scores, 1, function(r) any(is.na(r))))
+      n_score_fail <- sum(rowSums(is.na(scores)) > 0)
       if (n_score_fail > 0L) {
         warning(
           n_score_fail, " draw(s) produced NA canonical scores ",

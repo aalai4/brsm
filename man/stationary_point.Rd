@@ -13,10 +13,11 @@ stationary_point(object, factor_names = NULL, kappa_thresh = 1e+10)
 \method{stationary_point}{default}(object, factor_names = NULL, kappa_thresh = 1e+10)
 }
 \arguments{
-\item{object}{A `brsm_fit` object, `brmsfit` object, or data frame of posterior
-draws with Bayesian coefficient columns.}
+\item{object}{A `brsm_fit` object, `brmsfit` object, or
+data frame of posterior draws with Bayesian coefficient columns.}
 
-\item{factor_names}{Character vector of factor names (if object is data frame).}
+\item{factor_names}{Character vector of factor names
+(if object is data frame).}
 
 \item{kappa_thresh}{Threshold for computing condition numbers of Hessian.}
 }

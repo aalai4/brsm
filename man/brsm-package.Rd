@@ -8,6 +8,14 @@
 \description{
 Tools for analyzing posterior distributions of quadratic response surfaces from Bayesian model fits. Provides functions for computing stationary points, ridge analysis, steepest ascent paths, and visualization of response surfaces with full posterior uncertainty quantification.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/aalai4/brsm}
+  \item Report bugs at \url{https://github.com/aalai4/brsm/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Arian Alai \email{aalai4@nebraska.edu}
 

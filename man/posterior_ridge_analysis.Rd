@@ -31,16 +31,18 @@ posterior_ridge_analysis(
 )
 }
 \arguments{
-\item{object}{A `brsm_fit` object, `brmsfit` object, or data frame of posterior
-draws with Bayesian coefficient columns.}
+\item{object}{A `brsm_fit` object, `brmsfit` object, or
+data frame of posterior draws with Bayesian coefficient columns.}
 
-\item{factor_names}{Character vector of factor names (if object is data frame).}
+\item{factor_names}{Character vector of factor names
+(if object is data frame).}
 
 \item{radii}{Sequence of radii at which to compute ridge values.}
 
 \item{tol}{Numerical tolerance for ridge computations.}
 
-\item{summary}{If TRUE, return summarized ridge values; if FALSE, return draws.}
+\item{summary}{If TRUE, return summarized ridge values;
+if FALSE, return draws.}
 }
 \value{
 Data frame with posterior ridge values or summary statistics.

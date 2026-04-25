@@ -15,8 +15,9 @@ decode_brsm_data(
 \arguments{
 \item{data}{Data frame with coded factor columns.}
 
-\item{coding}{Optional coding metadata from [get_brsm_coding()]. If \code{NULL},
-the function uses \code{attr(data, "brsm_coding")}, if present.}
+\item{coding}{Optional coding metadata from [get_brsm_coding()]. If
+\code{NULL}, the function uses \code{attr(data, "brsm_coding")},
+if present.}
 
 \item{factor_names}{Optional character vector of factors to decode. If
 \code{NULL}, decodes all factors available in \code{coding}.}
@@ -37,7 +38,9 @@ This is useful for decoding prediction grids or summaries generated on coded
 scales.
 }
 \examples{
-dat <- data.frame(x1 = rnorm(10, 5, 2), x2 = runif(10, 10, 20), y = rnorm(10))
+dat <- data.frame(
+  x1 = rnorm(10, 5, 2), x2 = runif(10, 10, 20), y = rnorm(10)
+)
 coded <- prepare_brsm_data(dat, c("x1", "x2"), method = "range")
 decoded <- decode_brsm_data(coded)
 }

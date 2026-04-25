@@ -5,3 +5,11 @@
 ^run_test\.bat$
 ^test_converter\.R$
 ^README\.Rmd$
+^\.quarto$
+^\.Rhistory$
+^\.RData$
+^\.Rprofile$
+^\.tmp_.*\.txt$
+^.*\.log$
+^profile_rcpp_optimization\.R$
+^RCPP_.*\.md$

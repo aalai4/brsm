@@ -1,11 +1,9 @@
 #' Multi-Response Optimization via Posterior Desirability
 #'
-#' Optimizes multiple responses simultaneously by combining response-specific
-#' desirability functions over posterior predictions at candidate points.
-#'
-#' For each response model, posterior predictions are computed at all candidate
-#' points via [posterior_predict_brsm()]. Response values are transformed to
-#' desirabilities in \eqn{[0, 1]} and combined using a weighted geometric mean.
+#' Combines response-specific desirability functions over posterior predictions
+#' at candidate points. Predictions are obtained with
+#' [posterior_predict_brsm()], mapped to \eqn{[0, 1]}, and aggregated with a
+#' weighted geometric mean.
 #'
 #' @param models Named list of response models. Each element can be a
 #'   \code{brsm_fit}, \code{brmsfit}, or posterior-draw data frame accepted by
@@ -44,7 +42,7 @@
 #' @return A list with components:
 #'   \code{candidate_points} (with desirability summaries),
 #'   \code{best_point} (single-row data frame), \code{response_at_best}
-#'   (per-response summary at best point), \code{draw_count},
+#'   (per-response summary at the selected point), \code{draw_count},
 #'   \code{desirability_specs}, and optional
 #'   \code{combined_desirability_draws}.
 #' @export
@@ -162,16 +160,17 @@ optimize_brsm_multiresponse <- function(models,
   importances <- vapply(specs[names(models)], function(s) s$importance, numeric(1))
   wsum <- sum(importances)
 
-  combined <- matrix(1, nrow = n_draws, ncol = nrow(candidate_points))
+  combined_log <- matrix(0, nrow = n_draws, ncol = nrow(candidate_points))
+  any_zero <- matrix(FALSE, nrow = n_draws, ncol = nrow(candidate_points))
   for (i in seq_along(pred_mats)) {
     d <- pred_mats[[i]]
     zeros <- d <= 0
-    d_safe <- d
-    d_safe[zeros] <- 1
-    combined <- combined * (d_safe^importances[i])
-    combined[zeros] <- 0
+    any_zero <- any_zero | zeros
+    d_safe <- pmax(d, .Machine$double.xmin)
+    combined_log <- combined_log + importances[i] * log(d_safe)
   }
-  combined <- combined^(1 / wsum)
+  combined <- exp(combined_log / wsum)
+  combined[any_zero] <- 0
 
   desirability_summary <- apply(combined, 2, function(x) {
     qs <- stats::quantile(x, probs = probs, names = FALSE, na.rm = TRUE)

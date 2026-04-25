@@ -104,6 +104,24 @@ posterior_ridge_analysis.default <- function(
   n_r <- length(radii)
   I <- diag(p)
 
+  linear_cols <- paste0("b_", factor_names)
+  b_mat <- matrix(0, nrow = n_draws, ncol = p)
+  colnames(b_mat) <- factor_names
+  present_linear <- linear_cols %in% draw_cols
+  if (any(present_linear)) {
+    b_mat[, present_linear] <- as.matrix(
+      draws[, linear_cols[present_linear], drop = FALSE]
+    )
+  }
+  storage.mode(b_mat) <- "numeric"
+
+  # Precompute radius-0 stationary points in batch.
+  x0_mat <- stationary_points_batch(
+    h_array = .brsm_hessian_array(draws, factor_names),
+    b_matrix = b_mat,
+    kappa_thresh = 1e12
+  )
+
   # storage
   ridge_array <- array(
     NA_real_,
@@ -117,13 +135,7 @@ posterior_ridge_analysis.default <- function(
 
   for (d in seq_len(n_draws)) {
     draw <- draws[d, ]
-    b <- numeric(p)
-    for (i in seq_along(factor_names)) {
-      coef_name <- paste0("b_", factor_names[i])
-      if (coef_name %in% draw_cols) {
-        b[i] <- draw[[coef_name]]
-      }
-    }
+    b <- as.numeric(b_mat[d, ])
 
     B <- matrix(0, p, p)
     colnames(B) <- factor_names
@@ -161,11 +173,7 @@ posterior_ridge_analysis.default <- function(
     for (k in seq_along(radii)) {
       r <- radii[k]
       if (r == 0) {
-        xs <- tryCatch(
-          solve(B, -0.5 * b),
-          error = function(e) rep(NA_real_, p)
-        )
-        ridge_array[d, k, ] <- xs
+        ridge_array[d, k, ] <- x0_mat[d, ]
         next
       }
       f_root <- function(lambda) {

@@ -14,7 +14,13 @@ as_brsm_draws(object, factor_names, ...)
 
 \method{as_brsm_draws}{brmsfit}(object, factor_names = NULL, ...)
 
-\method{as_brsm_draws}{data.frame}(object, factor_names, ...)
+\method{as_brsm_draws}{data.frame}(
+  object,
+  factor_names,
+  require_quadratic = TRUE,
+  require_interactions = TRUE,
+  ...
+)
 
 \method{as_brsm_draws}{default}(object, factor_names, ...)
 }
@@ -34,8 +40,8 @@ A data frame with brsm-compatible column names:
   - b_<factor>:<factor>: interaction terms
 }
 \description{
-Converts posterior draws to the
-brsm-compatible format with standardized column names (b_Intercept, b_x1, b_I(x1^2), etc.).
+Converts posterior draws to the brsm-compatible format with
+standardized column names (b_Intercept, b_x1, b_I(x1^2), etc.).
 }
 \examples{
 # From posterior draws in a data frame

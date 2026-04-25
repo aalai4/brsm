@@ -40,12 +40,14 @@ steepest_ascent(
 )
 }
 \arguments{
-\item{object}{A `brsm_fit` object, `brmsfit` object, or data frame of posterior
-draws with Bayesian coefficient columns.}
+\item{object}{A `brsm_fit` object, `brmsfit` object, or
+data frame of posterior draws with Bayesian coefficient columns.}
 
-\item{factor_names}{Character vector of factor names (if object is data frame).}
+\item{factor_names}{Character vector of factor names
+(if object is data frame).}
 
-\item{start}{Starting point for ascent path (default: center of coded region).}
+\item{start}{Starting point for ascent path
+(default: center of coded region).}
 
 \item{step_size}{Step size along gradient direction.}
 
@@ -53,7 +55,8 @@ draws with Bayesian coefficient columns.}
 
 \item{tol}{Numerical tolerance for gradient computations.}
 
-\item{return_mean_path}{If TRUE, return mean path; if FALSE, return all draws.}
+\item{return_mean_path}{If TRUE, return mean path;
+if FALSE, return all draws.}
 
 \item{drop_null_paths}{Drop paths that don't increase response.}
 }

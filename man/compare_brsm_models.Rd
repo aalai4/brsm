@@ -26,9 +26,13 @@ Computes model comparison criteria across multiple fitted Bayesian models.
 \examples{
 \dontrun{
 fit1 <- fit_brsm(dat, response = "y", factor_names = c("x1", "x2"))
-fit2 <- fit_brsm(dat, response = "y", factor_names = c("x1", "x2"),
-                 prior = brms::prior(normal(0, 1), class = "b"))
-cmp <- compare_brsm_models(list(default = fit1, stronger_prior = fit2), "loo")
+fit2 <- fit_brsm(dat,
+  response = "y", factor_names = c("x1", "x2"),
+  prior = brms::prior(normal(0, 1), class = "b")
+)
+cmp <- compare_brsm_models(
+  list(default = fit1, stronger_prior = fit2), "loo"
+)
 cmp$comparison
 }
 }

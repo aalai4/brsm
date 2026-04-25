@@ -18,6 +18,7 @@ fit_brsm(
   sampling_preset = c("fast", "balanced", "robust"),
   backend = NULL,
   control = NULL,
+  model_terms = c("second_order", "first_order", "first_order_twi", "pure_quadratic"),
   coding_policy = c("warn", "error", "ignore"),
   ...
 )
@@ -29,8 +30,8 @@ fit_brsm(
 
 \item{factor_names}{Character vector of factor names.}
 
-\item{ranges}{Optional named list of factor ranges. If \code{NULL}, ranges are
-inferred from \code{data}.}
+\item{ranges}{Optional named list of factor ranges. If \code{NULL},
+ranges are inferred from \code{data}.}
 
 \item{prior}{Optional prior specification passed to \code{brms::brm()}.}
 
@@ -53,6 +54,12 @@ inferred from \code{data}.}
 \item{control}{Optional named list of NUTS control arguments. Values here
 override defaults from \code{sampling_preset}.}
 
+\item{model_terms}{Polynomial term specification. One of
+\\code{"second_order"} (default; linear + two-way interactions +
+pure quadratic terms), \\code{"first_order"} (linear only),
+\\code{"first_order_twi"} (linear + two-way interactions), or
+\\code{"pure_quadratic"} (linear + pure quadratic terms).}
+
 \item{coding_policy}{How to handle missing coding metadata from
 [prepare_brsm_data()]. One of \code{"warn"} (default),
 \code{"error"}, or \code{"ignore"}.}
@@ -62,7 +69,7 @@ override defaults from \code{sampling_preset}.}
 \value{
 An object of class \code{brsm_fit} with elements:
   \code{fit}, \code{formula}, \code{response}, \code{factor_names},
-  \code{ranges}, and \code{call}.
+  \\code{ranges}, \\code{model_terms}, and \\code{call}.
 }
 \description{
 Fits a second-order (quadratic) response surface model using
