@@ -131,14 +131,15 @@ steepest_ascent.default <- function(
     direction <- grad_vec / norm
     direction_matrix[d, ] <- direction
 
-    # Build ascent path
-    path <- matrix(NA_real_, nrow = n_steps + 1, ncol = n_factors)
+    # Build ascent path in one vectorized operation.
+    step_seq <- seq.int(0, n_steps)
+    path <- matrix(
+      rep(start_vec, each = n_steps + 1L),
+      nrow = n_steps + 1L,
+      ncol = n_factors,
+      byrow = FALSE
+    ) + step_size * tcrossprod(step_seq, direction)
     colnames(path) <- factor_names
-    path[1, ] <- start_vec
-
-    for (s in seq_len(n_steps)) {
-      path[s + 1, ] <- path[s, ] + step_size * direction
-    }
 
     path_list[[d]] <- as.data.frame(path)
   }

@@ -28,12 +28,14 @@ credible_optimum_region(
 )
 }
 \arguments{
-\item{object}{A `brsm_fit` object, `brmsfit` object, or data frame of posterior
-draws with Bayesian coefficient columns.}
+\item{object}{A `brsm_fit` object, `brmsfit` object, or
+data frame of posterior draws with Bayesian coefficient columns.}
 
-\item{factor_names}{Character vector of factor names (if object is data frame).}
+\item{factor_names}{Character vector of factor names
+(if object is data frame).}
 
-\item{probs}{Probability levels for credible intervals (default: 95% interval).}
+\item{probs}{Probability levels for credible intervals
+(default: 95% interval).}
 
 \item{summary}{If TRUE, return region boundaries; if FALSE, return all draws.}
 }
@@ -42,6 +44,6 @@ Data frame with credible region boundaries or posterior draws.
 }
 \description{
 Identifies the credible region around the stationary point of the response
-surface at specified probability levels. Useful for uncertainty quantification
-around the estimated optimum.
+surface at specified probability levels. Useful for uncertainty
+quantification around the estimated optimum.
 }

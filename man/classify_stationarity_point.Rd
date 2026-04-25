@@ -13,10 +13,11 @@ classify_stationarity_point(object, factor_names = NULL, tol = 1e-08)
 \method{classify_stationarity_point}{default}(object, factor_names = NULL, tol = 1e-08)
 }
 \arguments{
-\item{object}{A `brsm_fit` object, `brmsfit` object, or data frame of posterior
-draws with Bayesian coefficient columns.}
+\item{object}{A `brsm_fit` object, `brmsfit` object, or
+data frame of posterior draws with Bayesian coefficient columns.}
 
-\item{factor_names}{Character vector of factor names (if object is data frame).}
+\item{factor_names}{Character vector of factor names
+(if object is data frame).}
 
 \item{tol}{Numerical tolerance for eigenvalue comparisons.}
 }

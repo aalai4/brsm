@@ -13,8 +13,8 @@
 }
 \value{
 An object of class \code{summary.brsm_fit} containing:
-  \code{brsm_fit_obj} (the original brsm_fit object),
-  and \code{brmsfit_summary} (summary of the underlying brmsfit).
+  \code{brsm_fit_obj} (the original brsm_fit object) and
+  \code{brmsfit_summary} (summary of the underlying brmsfit).
 }
 \description{
 Display a detailed summary of a fitted Bayesian response surface model,

@@ -75,25 +75,14 @@ stationary_point.default <- function(
   # Hessian matrices
   H <- .brsm_hessian_array(draws, factor_names)
 
-  # Output matrix
-  x_star <- matrix(NA, nrow = n_draws, ncol = n_factors)
+  x_star <- stationary_points_batch(
+    h_array = H,
+    b_matrix = b,
+    kappa_thresh = as.numeric(kappa_thresh)
+  )
   colnames(x_star) <- factor_names
 
-  for (d in seq_len(n_draws)) {
-    H_d <- H[d, , ]
-
-    if (kappa(H_d) > kappa_thresh) {
-      x_star[d, ] <- NA
-      next
-    }
-
-    x_star[d, ] <- tryCatch(
-      -0.5 * solve(H_d, b[d, ]),
-      error = function(e) rep(NA, n_factors)
-    )
-  }
-
-  n_na <- sum(apply(x_star, 1, function(r) any(is.na(r))))
+  n_na <- sum(rowSums(is.na(x_star)) > 0)
   if (n_na > 0) {
     warning(n_na, " draws have near-singular Hessians and were set to NA.")
   }

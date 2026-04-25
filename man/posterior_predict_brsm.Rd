@@ -100,8 +100,6 @@ return a draw-by-point matrix instead of long-format data.}
 \code{summary = FALSE} and \code{return_matrix = FALSE}.}
 
 \item{seed}{Optional random seed for predictive noise draws.}
-
-\item{.sigma_source_draws}{Internal argument used for sigma extraction.}
 }
 \value{
 A prediction object as matrix, long-format data frame, or summary

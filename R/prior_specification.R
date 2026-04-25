@@ -1,12 +1,9 @@
 #' Build Prior Specifications for BRSM Models
 #'
-#' Constructs a coherent set of \code{brms} priors for quadratic response
-#' surface models used by [fit_brsm()]. Priors are generated for intercept,
-#' linear, interaction, quadratic, and residual sigma terms according to the
-#' selected \code{model_terms} structure.
-#'
-#' This utility is designed to reduce repetitive prior boilerplate and to make
-#' prior choices explicit and reproducible in BRSM workflows.
+#' Builds \code{brms} priors for quadratic response-surface models used by
+#' [fit_brsm()]. Priors are generated for intercept, linear, interaction,
+#' quadratic, and residual sigma terms according to
+#' \code{model_terms}.
 #'
 #' @param factor_names Character vector of factor names.
 #' @param model_terms Polynomial term specification. One of

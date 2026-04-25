@@ -21,9 +21,9 @@ Imports:
     stats,
     ggplot2,
     viridis,
-    Rcpp
+  Rcpp
 LinkingTo:
-    Rcpp
+  Rcpp
 Suggests:
   brms,
     testthat (>= 3.0.0),

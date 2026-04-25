@@ -58,7 +58,7 @@ are provided, scales all prior standard deviations by
 }
 \value{
 A \code{brmsprior} object that can be passed directly to
-[fit_brsm()] or \code{brms::brm()} as the \code{prior} argument.
+  [fit_brsm()] or \code{brms::brm()} as the \code{prior} argument.
 }
 \description{
 Constructs a coherent set of \code{brms} priors for quadratic response

@@ -97,4 +97,5 @@ ca$eigenvalues   # posterior summary of principal curvatures
 ca$eigenvectors  # posterior summary of axis loadings
 ca$scores        # canonical factor scores at stationary point
 }
+
 }

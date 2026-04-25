@@ -4,14 +4,7 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
-)
-```
+
 
 # brsm: Bayesian Response Surface Methods
 
@@ -42,7 +35,8 @@ devtools::install_github("aalai4/brsm")
 
 ### Basic Workflow
 
-```{r example, eval=FALSE}
+
+``` r
 library(brsm)
 
 # Fit a Bayesian response surface model
@@ -70,7 +64,8 @@ ppd <- posterior_predict_brsm(fit, newdata = new_points, summary = TRUE)
 
 Most analysis functions can take either a `brsm_fit` object or posterior draws:
 
-```{r, eval=FALSE}
+
+``` r
 # Recommended: pass brsm_fit directly
 sp <- stationary_point(fit)
 
@@ -108,7 +103,8 @@ sp2 <- stationary_point(draws, factor_names = c("x1", "x2"))
 
 ## Example: Full Analysis Pipeline
 
-```{r pipeline, eval=FALSE}
+
+``` r
 library(brsm)
 
 # 1. PREPARE DATA

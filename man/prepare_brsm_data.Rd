@@ -2,16 +2,20 @@
 % Please edit documentation in R/coded_data_helpers.R
 \name{prepare_brsm_data}
 \alias{prepare_brsm_data}
-\title{Prepare Factor Columns for Bayesian RSM Modeling}
+\title{Prepare Factor Columns for BRSM Modeling}
 \usage{
-prepare_brsm_data(data, factor_names, method = c("zscore", "range", "identity"))
+prepare_brsm_data(
+  data,
+  factor_names,
+  method = c("zscore", "range", "identity")
+)
 }
 \arguments{
 \item{data}{Data frame containing factor columns.}
 
 \item{factor_names}{Character vector of factor column names to code.}
 
-\item{method}{Coding method. One of \code{"zscore"} (mean/sd),
+\item{method}{Coding method. One of \code{"zscore"} (mean/sd) or
 \code{"range"} (midpoint/half-range; approximately maps observed range to
 \code{[-1, 1]}), or \code{"identity"} (no transform; records explicit
 identity coding metadata for already-coded predictors).}
@@ -26,7 +30,11 @@ Applies lightweight centering/scaling to factor columns for response-surface
 modeling and stores coding metadata needed to decode predictions later.
 }
 \examples{
-dat <- data.frame(x1 = rnorm(10, 5, 2), x2 = runif(10, 10, 20), y = rnorm(10))
-coded <- prepare_brsm_data(dat, factor_names = c("x1", "x2"), method = "range")
+dat <- data.frame(
+  x1 = rnorm(10, 5, 2), x2 = runif(10, 10, 20), y = rnorm(10)
+)
+coded <- prepare_brsm_data(
+  dat, factor_names = c("x1", "x2"), method = "range"
+)
 str(attr(coded, "brsm_coding"))
 }

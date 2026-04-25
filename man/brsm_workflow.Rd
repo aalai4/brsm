@@ -2,7 +2,7 @@
 % Please edit documentation in R/brsm_workflow.R
 \name{brsm_workflow}
 \alias{brsm_workflow}
-\title{Run a Complete brsm Analysis Workflow}
+\title{Run a Complete BRSM Analysis Workflow}
 \usage{
 brsm_workflow(
   object,
@@ -16,6 +16,11 @@ brsm_workflow(
   n_steps = 10,
   include_plots = TRUE,
   contour_type = c("mean", "uncertainty", "quantile"),
+  plot_vary_factors = NULL,
+  plot_fixed = NULL,
+  plot_conditioning = c("center", "optimum_mean", "user"),
+  plot_slice = NULL,
+  plot_pairwise = FALSE,
   seed = NULL,
   fit_mode = c("none", "fit_brsm"),
   response = NULL,
@@ -48,15 +53,32 @@ ascent. Defaults to zeros for each factor.}
 \item{n_steps}{Number of steps for steepest ascent.}
 
 \item{include_plots}{Logical; if `TRUE`, generate contour/optimum/ridge plots
-when exactly two factors are provided.}
+when exactly two factors are provided. For non-quadratic draw objects,
+contour plots are returned with a steepest-ascent direction overlay and
+optimization-geometry plots are omitted.}
 
 \item{contour_type}{Surface type for contour plotting. Passed to
 [plot_posterior_contours()].}
 
+\item{plot_vary_factors}{Optional character vector of length 2 specifying
+which factors vary in contour plots when `length(factor_names) > 2` and
+`plot_pairwise = FALSE`. Defaults to the first two factors.}
+
+\item{plot_fixed}{Optional named numeric vector of fixed values used when
+`plot_conditioning = "user"`.}
+
+\item{plot_conditioning}{Conditioning strategy for non-varied factors in
+contour plots. One of `"center"`, `"optimum_mean"`, or `"user"`.}
+
+\item{plot_slice}{Optional named list with one element specifying sliced
+values for a conditioning factor, e.g. `list(x3 = c(-1, 0, 1))`.}
+
+\item{plot_pairwise}{Logical; if `TRUE`, generate pairwise contour panels for
+all factor pairs.}
+
 \item{seed}{Optional random seed used for stochastic plotting operations.}
 
-\item{fit_mode}{One of `"none"`, `"fit_brsm"`, or
-`"fit_brsm"`. Use `"none"` (default) to analyze an existing
+\item{fit_mode}{One of `"none"` or `"fit_brsm"`. Use `"none"` (default) to analyze an existing
 Bayesian fit/draw object. Use a fit mode to fit from raw data in `object`
 and then run the workflow.}
 
@@ -78,6 +100,9 @@ A named list with components:
   always `draws`, and conditionally `fit`, `ranges`, `grid`, `predictions`,
   `surface`, `stationary_points`, `classification`, `credible_region`,
   `steepest_ascent`, `ridge_analysis`, and `plots` depending on `steps`.
+  When plots are produced, `plots` also includes
+  `plot_mode` (`"optimization_geometry"` or `"direction_only"`) and
+  `geometry_available` (logical).
 }
 \description{
 Executes a full response-surface workflow from model/draw conversion through
