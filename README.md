@@ -13,7 +13,11 @@ editor_options:
 
 <!-- badges: end -->
 
-Tools for analyzing posterior distributions of quadratic response surfaces from Bayesian model fits. The package focuses on Bayesian RSM workflows: fitting quadratic models, posterior surface prediction, stationary-point diagnostics, ridge/ascent analysis, and model-checking utilities.
+Tools for analyzing posterior distributions of quadratic response
+surfaces from Bayesian model fits. The package focuses on Bayesian RSM
+workflows: fitting quadratic models, posterior surface prediction,
+stationary-point diagnostics, ridge/ascent analysis, and model-checking
+utilities.
 
 ## Features
 
@@ -90,8 +94,10 @@ sp2 <- stationary_point(draws, factor_names = c("x1", "x2"))
 - `credible_optimum_region()`: Compute credible regions around optimum
 - `steepest_ascent()`: Compute steepest ascent path from starting point
 - `posterior_predict_brsm()`: Posterior predictive draws at new points
-- `optimize_brsm_multiresponse()`: Multi-response desirability optimization
-- `loftest_brsm()`: Lack-of-fit test against more complex reference models
+- `optimize_brsm_multiresponse()`: Multi-response desirability
+  optimization
+- `loftest_brsm()`: Lack-of-fit test against more complex reference
+  models
 
 ### Utilities
 
@@ -99,10 +105,12 @@ sp2 <- stationary_point(draws, factor_names = c("x1", "x2"))
 - `compare_brsm_models()`: Compare multiple models via LOO/WAIC
 - `predict_surface()`: Generate predictions across response surface grid
 - `surface_grid()`: Create grid for response surface visualization
-- `decode_brsm_data()`: Reverse variable transformations to original scale
+- `decode_brsm_data()`: Reverse variable transformations to original
+  scale
 - `get_brsm_coding()`: Extract coding metadata
 - `specify_brsm_priors()`: Build `brms` prior specifications
-- `generate_brsm_design()`: Generate CCD/BBD designs in coded or natural units
+- `generate_brsm_design()`: Generate CCD/BBD designs in coded or natural
+  units
 
 ## Example: Full Analysis Pipeline
 
@@ -185,11 +193,14 @@ The package architecture prioritizes:
 
 ## References
 
-- Guo, X., Luh, D. B., & Box, G. E. (2009). Bayesian non-parametric modelling for case studies in operations research. *Journal of the Royal Statistical Society: Series C*, 58(1), 99-118.
+- Guo, X., Luh, D. B., & Box, G. E. (2009). Bayesian non-parametric
+  modelling for case studies in operations research. *Journal of the
+  Royal Statistical Society: Series C*, 58(1), 99-118.
 
 ## Documentation
 
-See package help pages and examples in the `man/` directory for current function-level documentation.
+See package help pages and examples in the `man/` directory for current
+function-level documentation.
 
 ## License
 
