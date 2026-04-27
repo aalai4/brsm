@@ -8,14 +8,22 @@
 #' @param factor_names Character vector of factor names
 #'   (if object is data frame).
 #' @param tol Numerical tolerance for eigenvalue comparisons.
+#' @param return_kappa Logical; if \code{TRUE}, attach a \code{kappa} column
+#'   to the output containing the LU-diagonal condition-number proxy of the
+#'   Hessian for each draw. Useful for identifying near-singular draws without
+#'   altering classification behaviour. Default \code{FALSE}.
 #'
-#' @return A data frame with classification results and probabilities.
+#' @return A data frame with columns \code{draw} and \code{classification}
+#'   (a factor with levels \code{"maximum"}, \code{"minimum"},
+#'   \code{"saddle"}, \code{"indeterminate"}). When \code{return_kappa = TRUE}
+#'   an additional numeric column \code{kappa} is included.
 #'
 #' @export
 classify_stationarity_point <- function(
     object,
     factor_names = NULL,
-    tol = 1e-8) {
+    tol = 1e-8,
+    return_kappa = FALSE) {
   UseMethod("classify_stationarity_point")
 }
 
@@ -24,14 +32,16 @@ classify_stationarity_point <- function(
 classify_stationarity_point.brsm_fit <- function(
     object,
     factor_names = NULL,
-    tol = 1e-8) {
+    tol = 1e-8,
+    return_kappa = FALSE) {
   if (is.null(factor_names)) {
     factor_names <- object$factor_names
   }
   classify_stationarity_point.default(
     as_brsm_draws(object),
     factor_names = factor_names,
-    tol = tol
+    tol = tol,
+    return_kappa = return_kappa
   )
 }
 
@@ -40,7 +50,8 @@ classify_stationarity_point.brsm_fit <- function(
 classify_stationarity_point.default <- function(
     object,
     factor_names = NULL,
-    tol = 1e-8) {
+    tol = 1e-8,
+    return_kappa = FALSE) {
   draws <- .brsm_validate_draws(object)
   if (is.null(factor_names)) {
     stop("factor_names must be supplied if object does not contain metadata.")
@@ -51,12 +62,18 @@ classify_stationarity_point.default <- function(
     stop("tol must be a non-negative numeric scalar.")
   }
 
+  if (!is.logical(return_kappa) || length(return_kappa) != 1L ||
+      is.na(return_kappa)) {
+    stop("return_kappa must be TRUE or FALSE.")
+  }
+
   n_draws <- nrow(draws)
   n_factors <- length(factor_names)
 
   H <- .brsm_hessian_array(draws, factor_names)
 
   class_vec <- rep(NA_character_, n_draws)
+  kappa_vec <- rep(NA_real_, n_draws)
 
   for (d in seq_len(n_draws)) {
     H_d <- H[d, , ]
@@ -69,6 +86,12 @@ classify_stationarity_point.default <- function(
     if (any(is.na(eig))) {
       next
     }
+
+    # Condition-number proxy: ratio of largest to smallest absolute eigenvalue.
+    abs_eig <- abs(eig)
+    min_abs <- min(abs_eig)
+    max_abs <- max(abs_eig)
+    kappa_vec[d] <- if (min_abs > 0) max_abs / min_abs else Inf
 
     if (any(abs(eig) <= tol)) {
       class_vec[d] <- "indeterminate"
@@ -95,9 +118,15 @@ classify_stationarity_point.default <- function(
     )
   }
 
-  data.frame(
+  out <- data.frame(
     draw = seq_len(n_draws),
     classification = class_vec,
     stringsAsFactors = FALSE
   )
+
+  if (isTRUE(return_kappa)) {
+    out$kappa <- kappa_vec
+  }
+
+  out
 }
