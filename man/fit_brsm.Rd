@@ -10,6 +10,7 @@ fit_brsm(
   factor_names,
   ranges = NULL,
   prior = NULL,
+  prior_profile = c("legacy", "regularized", "adaptive"),
   family = stats::gaussian(),
   chains = 4,
   iter = 2000,

@@ -108,8 +108,8 @@ A prediction object as matrix, long-format data frame, or summary
 \description{
 Generates posterior predictive values at arbitrary new predictor points.
 Unlike [predict_surface()], this function can include residual uncertainty
-(sigma) so outputs represent draws from the posterior predictive
-distribution, not just posterior expectations.
+(sigma), so outputs are draws from the posterior predictive distribution
+rather than posterior means alone.
 }
 \details{
 Supports S3 dispatch for \code{brsm_fit}, \code{brmsfit}, and data frames

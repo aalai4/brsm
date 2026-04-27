@@ -79,16 +79,15 @@ all factor pairs.}
 \item{seed}{Optional random seed used for stochastic plotting operations.}
 
 \item{fit_mode}{One of `"none"` or `"fit_brsm"`. Use `"none"` (default) to analyze an existing
-Bayesian fit/draw object. Use a fit mode to fit from raw data in `object`
-and then run the workflow.}
+Bayesian fit/draw object. Use `"fit_brsm"` to fit from raw data in
+\code{object} and then run the workflow.}
 
 \item{response}{Required when `fit_mode != "none"`. Name of the response
 column in raw input data.}
 
 \item{fit_args}{Named list of additional arguments forwarded to
 [fit_brsm()] when `fit_mode != "none"`.
-This enables custom priors and sampling controls without re-writing the
-pipeline manually.}
+Useful for custom priors and sampling controls.}
 
 \item{steps}{Character vector selecting which workflow stages to run. Any of
 `"predictions"`, `"stationary"`, `"classification"`,
@@ -105,8 +104,8 @@ A named list with components:
   `geometry_available` (logical).
 }
 \description{
-Executes a full response-surface workflow from model/draw conversion through
-prediction, optimization diagnostics, and optional plots.
+Runs a response-surface workflow from model/draw conversion through
+prediction, diagnostics, and optional plots.
 }
 \details{
 By default (\code{fit_mode = "none"}), input must be Bayesian:
@@ -114,9 +113,8 @@ By default (\code{fit_mode = "none"}), input must be Bayesian:
 coefficient columns (\code{b_Intercept}, \code{b_x1}, \code{b_I(x1^2)},
 interactions, etc.).
 
-If \code{fit_mode} is \code{"fit_brsm"},
-then \code{object} is treated as raw input data and model fitting is done
-internally before running selected workflow steps.
+If \code{fit_mode} is \code{"fit_brsm"}, \code{object} is treated as raw
+input data and fitting is performed before selected workflow steps run.
 }
 \examples{
 set.seed(1)

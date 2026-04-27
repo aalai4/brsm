@@ -73,14 +73,13 @@ When \code{summary = TRUE}: a list with components
 
   When \code{summary = FALSE}: a list with components \code{eigenvalues}
   (draws × p matrix), \code{eigenvectors} (draws × p × p array), and
-  optionally \code{scores} (draws × p matrix of canonical factor scores).
+  optionally \code{scores} (draws × p matrix).
 }
 \description{
-Performs canonical analysis by computing the eigendecomposition of the
-Hessian matrix (B matrix) of the quadratic response surface across all
-posterior draws. Returns posterior distributions of principal curvatures
-(eigenvalues) and canonical axes (eigenvectors), along with canonical factor
-scores at the stationary point.
+Computes the eigendecomposition of the quadratic Hessian (\eqn{\mathbf{B}})
+across posterior draws. Returns principal curvatures (eigenvalues),
+canonical axes (eigenvectors), and optional canonical scores at the
+stationary point.
 }
 \details{
 The Hessian \eqn{\mathbf{B}} of the quadratic surface

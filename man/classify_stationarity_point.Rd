@@ -6,11 +6,26 @@
 \alias{classify_stationarity_point.default}
 \title{Classify Stationary Points as Maximum, Minimum, or Saddle}
 \usage{
-classify_stationarity_point(object, factor_names = NULL, tol = 1e-08)
+classify_stationarity_point(
+  object,
+  factor_names = NULL,
+  tol = 1e-08,
+  return_kappa = FALSE
+)
 
-\method{classify_stationarity_point}{brsm_fit}(object, factor_names = NULL, tol = 1e-08)
+\method{classify_stationarity_point}{brsm_fit}(
+  object,
+  factor_names = NULL,
+  tol = 1e-08,
+  return_kappa = FALSE
+)
 
-\method{classify_stationarity_point}{default}(object, factor_names = NULL, tol = 1e-08)
+\method{classify_stationarity_point}{default}(
+  object,
+  factor_names = NULL,
+  tol = 1e-08,
+  return_kappa = FALSE
+)
 }
 \arguments{
 \item{object}{A `brsm_fit` object, `brmsfit` object, or
@@ -20,9 +35,17 @@ data frame of posterior draws with Bayesian coefficient columns.}
 (if object is data frame).}
 
 \item{tol}{Numerical tolerance for eigenvalue comparisons.}
+
+\item{return_kappa}{Logical; if \code{TRUE}, attach a \code{kappa} column
+to the output containing the LU-diagonal condition-number proxy of the
+Hessian for each draw. Useful for identifying near-singular draws without
+altering classification behaviour. Default \code{FALSE}.}
 }
 \value{
-A data frame with classification results and probabilities.
+A data frame with columns \code{draw} and \code{classification}
+  (a factor with levels \code{"maximum"}, \code{"minimum"},
+  \code{"saddle"}, \code{"indeterminate"}). When \code{return_kappa = TRUE}
+  an additional numeric column \code{kappa} is included.
 }
 \description{
 Classifies stationary points based on the eigenvalues of the Hessian matrix.

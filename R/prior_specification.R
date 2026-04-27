@@ -34,6 +34,7 @@ specify_brsm_priors <- function(
     model_terms = c(
       "second_order", "first_order", "first_order_twi", "pure_quadratic"
     ),
+    prior_profile = c("legacy", "regularized", "adaptive"),
     coefficient_family = c("normal", "student_t"),
     intercept_sd = 5,
     linear_sd = 2,
@@ -52,7 +53,90 @@ specify_brsm_priors <- function(
 
   factor_names <- .brsm_validate_factor_names(factor_names)
   model_terms <- match.arg(model_terms)
+  prior_profile <- match.arg(prior_profile)
   coefficient_family <- match.arg(coefficient_family)
+
+  intercept_sd_user <- !missing(intercept_sd)
+  linear_sd_user <- !missing(linear_sd)
+  interaction_sd_user <- !missing(interaction_sd)
+  quadratic_sd_user <- !missing(quadratic_sd)
+  sigma_scale_user <- !missing(sigma_scale)
+  coefficient_family_user <- !missing(coefficient_family)
+  student_df_user <- !missing(student_df)
+
+  if (prior_profile != "legacy") {
+    p <- length(factor_names)
+    p_twi <- if (p > 1L) choose(p, 2L) else 0L
+
+    # Profile defaults by polynomial order on coded predictors.
+    prof <- switch(
+      model_terms,
+      first_order = list(
+        intercept_sd = 3,
+        linear_sd = 1.5,
+        interaction_sd = 1,
+        quadratic_sd = 1,
+        sigma_scale = 2,
+        coefficient_family = "student_t",
+        student_df = 3,
+        n_coef = p
+      ),
+      first_order_twi = list(
+        intercept_sd = 3,
+        linear_sd = 1.25,
+        interaction_sd = 0.6,
+        quadratic_sd = 1,
+        sigma_scale = 2,
+        coefficient_family = "student_t",
+        student_df = 3,
+        n_coef = p + p_twi
+      ),
+      pure_quadratic = list(
+        intercept_sd = 3,
+        linear_sd = 1.25,
+        interaction_sd = 1,
+        quadratic_sd = 0.6,
+        sigma_scale = 2,
+        coefficient_family = "student_t",
+        student_df = 3,
+        n_coef = 2L * p
+      ),
+      second_order = list(
+        intercept_sd = 3,
+        linear_sd = 1,
+        interaction_sd = 0.5,
+        quadratic_sd = 0.5,
+        sigma_scale = 2,
+        coefficient_family = "student_t",
+        student_df = 3,
+        n_coef = 2L * p + p_twi
+      )
+    )
+
+    if (!intercept_sd_user) intercept_sd <- prof$intercept_sd
+    if (!linear_sd_user) linear_sd <- prof$linear_sd
+    if (!interaction_sd_user) interaction_sd <- prof$interaction_sd
+    if (!quadratic_sd_user) quadratic_sd <- prof$quadratic_sd
+    if (!sigma_scale_user) sigma_scale <- prof$sigma_scale
+    if (!coefficient_family_user) coefficient_family <- prof$coefficient_family
+    if (!student_df_user) student_df <- prof$student_df
+
+    # Adaptive profile tightens slope priors when data are weak for the model.
+    if (prior_profile == "adaptive" && !is.null(data) && is.data.frame(data)) {
+      n <- nrow(data)
+      info_ratio <- n / max(1L, prof$n_coef)
+
+      if (is.finite(info_ratio) && info_ratio < 3) {
+        linear_sd <- linear_sd * 0.8
+        interaction_sd <- interaction_sd * 0.6
+        quadratic_sd <- quadratic_sd * 0.6
+      } else if (is.finite(info_ratio) && info_ratio < 5) {
+        linear_sd <- linear_sd * 0.9
+        interaction_sd <- interaction_sd * 0.75
+        quadratic_sd <- quadratic_sd * 0.75
+      }
+    }
+  }
 
   .brsm_check_positive_scalar(intercept_sd, "intercept_sd")
   .brsm_check_positive_scalar(linear_sd, "linear_sd")
