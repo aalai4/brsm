@@ -23,6 +23,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// stationary_points_batch_details
+List stationary_points_batch_details(NumericVector h_array, NumericMatrix b_matrix, double kappa_thresh);
+RcppExport SEXP _brsm_stationary_points_batch_details(SEXP h_arraySEXP, SEXP b_matrixSEXP, SEXP kappa_threshSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type h_array(h_arraySEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type b_matrix(b_matrixSEXP);
+    Rcpp::traits::input_parameter< double >::type kappa_thresh(kappa_threshSEXP);
+    rcpp_result_gen = Rcpp::wrap(stationary_points_batch_details(h_array, b_matrix, kappa_thresh));
+    return rcpp_result_gen;
+END_RCPP
+}
 // matrix_to_long_format
 DataFrame matrix_to_long_format(NumericMatrix pred_matrix, IntegerVector draw_ids, IntegerVector point_ids);
 RcppExport SEXP _brsm_matrix_to_long_format(SEXP pred_matrixSEXP, SEXP draw_idsSEXP, SEXP point_idsSEXP) {
@@ -39,6 +52,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_brsm_stationary_points_batch", (DL_FUNC) &_brsm_stationary_points_batch, 3},
+    {"_brsm_stationary_points_batch_details", (DL_FUNC) &_brsm_stationary_points_batch_details, 3},
     {"_brsm_matrix_to_long_format", (DL_FUNC) &_brsm_matrix_to_long_format, 3},
     {NULL, NULL, 0}
 };

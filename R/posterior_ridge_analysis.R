@@ -115,12 +115,16 @@ posterior_ridge_analysis.default <- function(
   }
   storage.mode(b_mat) <- "numeric"
 
-  # Precompute radius-0 stationary points in batch.
-  x0_mat <- stationary_points_batch(
-    h_array = .brsm_hessian_array(draws, factor_names),
+  # Precompute radius-0 stationary points in batch with detailed status.
+  h_array <- .brsm_hessian_array(draws, factor_names)
+  sp_details <- stationary_points_batch_details(
+    h_array = h_array,
     b_matrix = b_mat,
     kappa_thresh = 1e12
   )
+  x0_mat <- sp_details$x_star
+  x0_status_code <- sp_details$status_code
+  x0_kappa_proxy <- sp_details$kappa_proxy
 
   # storage
   ridge_array <- array(
@@ -279,6 +283,18 @@ posterior_ridge_analysis.default <- function(
     warning(paste(msg[fail_counts > 0], collapse = "; "))
   }
 
+  # Attach per-draw solver diagnostics from radius-0 computation.
+  x0_diag_info <- list(
+    status_code = x0_status_code,
+    status_label = .brsm_stationary_status_labels(x0_status_code),
+    kappa_proxy = x0_kappa_proxy,
+    status_counts = .brsm_stationary_status_counts(x0_status_code),
+    n_draws = n_draws,
+    n_excluded = sum(x0_status_code != 0L),
+    pct_excluded = mean(x0_status_code != 0L),
+    function_name = "posterior_ridge_analysis"
+  )
+
   if (!summary) {
     ridge_df <- do.call(
       rbind,
@@ -293,6 +309,7 @@ posterior_ridge_analysis.default <- function(
       })
     )
     rownames(ridge_df) <- NULL
+    attr(ridge_df, "diagnostics") <- x0_diag_info
     return(ridge_df)
   }
 
@@ -339,5 +356,6 @@ posterior_ridge_analysis.default <- function(
 
   result <- do.call(rbind, results)
   rownames(result) <- NULL
+  attr(result, "diagnostics") <- x0_diag_info
   result
 }

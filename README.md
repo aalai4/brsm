@@ -1,26 +1,33 @@
----
-output: github_document
----
+
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-
-
 
 # brsm: Bayesian Response Surface Methods
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
-Tools for analyzing posterior distributions of quadratic response surfaces from Bayesian model fits. The package focuses on Bayesian RSM workflows: fitting quadratic models, posterior surface prediction, stationary-point diagnostics, ridge/ascent analysis, and model-checking utilities.
+Tools for analyzing posterior distributions of quadratic response
+surfaces from Bayesian model fits. The package focuses on Bayesian RSM
+workflows: fitting quadratic models, posterior surface prediction,
+stationary-point diagnostics, ridge/ascent analysis, and model-checking
+utilities.
 
 ## Features
 
 - **Bayesian quadratic model fitting** with `fit_brsm()`
-- **Posterior surface prediction** with `predict_surface()` and `posterior_predict_brsm()`
-- **Canonical/stationarity diagnostics** with `canonical_analysis()`, `stationary_point()`, and `classify_stationarity_point()`
-- **Optimization tools** including `posterior_ridge_analysis()`, `steepest_ascent()`, `credible_optimum_region()`, and `optimize_brsm_multiresponse()`
-- **Design and priors helpers** via `generate_brsm_design()` and `specify_brsm_priors()`
-- **Model adequacy checks** with `loftest_brsm()`, `check_brsm_fit()`, and `check_brsm_ppc()`
+- **Posterior surface prediction** with `predict_surface()` and
+  `posterior_predict_brsm()`
+- **Canonical/stationarity diagnostics** with `canonical_analysis()`,
+  `stationary_point()`, and `classify_stationary_point()`
+- **Optimization tools** including `posterior_ridge_analysis()`,
+  `steepest_ascent()`, `credible_optimum_region()`, and
+  `optimize_brsm_multiresponse()`
+- **Design and priors helpers** via `generate_brsm_design()` and
+  `specify_brsm_priors()`
+- **Model adequacy checks** with `loftest_brsm()`, `check_brsm_fit()`,
+  and `check_brsm_ppc()`
 
 ## Installation
 
@@ -34,7 +41,6 @@ devtools::install_github("aalai4/brsm")
 ## Quick Start
 
 ### Basic Workflow
-
 
 ``` r
 library(brsm)
@@ -51,7 +57,7 @@ fit <- fit_brsm(
 # Characterize the response surface
 stationarity <- fit |> 
   stationary_point() |>
-  classify_stationarity_point()
+  classify_stationary_point()
 
 ridge <- fit |> posterior_ridge_analysis()
 
@@ -62,8 +68,8 @@ ppd <- posterior_predict_brsm(fit, newdata = new_points, summary = TRUE)
 
 ### S3 Method Dispatch
 
-Most analysis functions can take either a `brsm_fit` object or posterior draws:
-
+Most analysis functions can take either a `brsm_fit` object or posterior
+draws:
 
 ``` r
 # Recommended: pass brsm_fit directly
@@ -77,32 +83,40 @@ sp2 <- stationary_point(draws, factor_names = c("x1", "x2"))
 ## Core Functions
 
 ### Model Fitting
+
 - `fit_brsm()`: Fit Bayesian quadratic response surface model
 - `prepare_brsm_data()`: Prepare and center/scale factor variables
 
 ### Analysis Functions (S3 Methods)
-- `canonical_analysis()`: Posterior canonical decomposition of the quadratic form
+
+- `canonical_analysis()`: Posterior canonical decomposition of the
+  quadratic form
 - `stationary_point()`: Identify critical points of the response surface
-- `classify_stationarity_point()`: Classify points (maximum, minimum, saddle)
+- `classify_stationary_point()`: Classify points (maximum, minimum,
+  saddle)
 - `posterior_ridge_analysis()`: Ridge analysis at specified radii
 - `credible_optimum_region()`: Compute credible regions around optimum
 - `steepest_ascent()`: Compute steepest ascent path from starting point
 - `posterior_predict_brsm()`: Posterior predictive draws at new points
-- `optimize_brsm_multiresponse()`: Multi-response desirability optimization
-- `loftest_brsm()`: Lack-of-fit test against more complex reference models
+- `optimize_brsm_multiresponse()`: Multi-response desirability
+  optimization
+- `loftest_brsm()`: Lack-of-fit test against more complex reference
+  models
 
 ### Utilities
+
 - `as_brsm_draws()`: Convert various inputs to standardized draws format
 - `compare_brsm_models()`: Compare multiple models via LOO/WAIC
 - `predict_surface()`: Generate predictions across response surface grid
 - `surface_grid()`: Create grid for response surface visualization
-- `decode_brsm_data()`: Reverse variable transformations to original scale
+- `decode_brsm_data()`: Reverse variable transformations to original
+  scale
 - `get_brsm_coding()`: Extract coding metadata
 - `specify_brsm_priors()`: Build `brms` prior specifications
-- `generate_brsm_design()`: Generate CCD/BBD designs in coded or natural units
+- `generate_brsm_design()`: Generate CCD/BBD designs in coded or natural
+  units
 
 ## Example: Full Analysis Pipeline
-
 
 ``` r
 library(brsm)
@@ -131,7 +145,7 @@ comparison <- compare_brsm_models(
 
 # 4. CHARACTERIZE RESPONSE SURFACE
 critical <- fit |> stationary_point()
-classification <- critical |> classify_stationarity_point()
+classification <- critical |> classify_stationary_point()
 ridge <- fit |> posterior_ridge_analysis()
 
 # 5. GENERATE PREDICTIONS
@@ -171,20 +185,22 @@ lof_test <- loftest_brsm(
 
 ## Design Philosophy
 
-The package architecture prioritizes:
-- **Usability**: Intuitive, pipe-compatible API
-- **Bayesian Rigor**: Full posterior uncertainty for all estimates
-- **Backward Compatibility**: Existing code continues to work
-- **Flexibility**: Extensible through S3 methods
-- **Documentation**: Comprehensive examples and vignettes
+The package architecture prioritizes: - **Usability**: Intuitive,
+pipe-compatible API - **Bayesian Rigor**: Full posterior uncertainty for
+all estimates - **Backward Compatibility**: Existing code continues to
+work - **Flexibility**: Extensible through S3 methods -
+**Documentation**: Comprehensive examples and vignettes
 
 ## References
 
-- Guo, X., Luh, D. B., & Box, G. E. (2009). Bayesian non-parametric modelling for case studies in operations research. *Journal of the Royal Statistical Society: Series C*, 58(1), 99-118.
+- Guo, X., Luh, D. B., & Box, G. E. (2009). Bayesian non-parametric
+  modelling for case studies in operations research. *Journal of the
+  Royal Statistical Society: Series C*, 58(1), 99-118.
 
 ## Documentation
 
-See package help pages and examples in the `man/` directory for current function-level documentation.
+See package help pages and examples in the `man/` directory for current
+function-level documentation.
 
 ## License
 
@@ -192,4 +208,5 @@ MIT License - see LICENSE file for details
 
 ## Contributing
 
-Contributions are welcome! Please submit issues and pull requests to the GitHub repository.
+Contributions are welcome! Please submit issues and pull requests to the
+GitHub repository.

@@ -165,8 +165,9 @@ canonical_analysis.default <- function(object,
     )
   }
 
-  # Canonical factor scores at x* per draw
+  # Canonical factor scores at x* per draw with detailed solver diagnostics
   scores <- NULL
+  sp_diag_info <- NULL
   if (isTRUE(include_scores)) {
     linear_cols <- paste0("b_", factor_names)
     if (!all(linear_cols %in% colnames(draws))) {
@@ -178,11 +179,12 @@ canonical_analysis.default <- function(object,
       b_mat <- as.matrix(draws[, linear_cols, drop = FALSE])
       storage.mode(b_mat) <- "numeric"
 
-      x_star_mat <- stationary_points_batch(
+      sp_details <- stationary_points_batch_details(
         h_array = H,
         b_matrix = b_mat,
         kappa_thresh = as.numeric(kappa_thresh)
       )
+      x_star_mat <- sp_details$x_star
 
       scores <- matrix(NA_real_, nrow = n_draws, ncol = p)
       colnames(scores) <- paste0("z_", seq_len(p))
@@ -202,6 +204,18 @@ canonical_analysis.default <- function(object,
           "(near-singular Hessian or failed decomposition)."
         )
       }
+
+      # Attach stationary point solver diagnostics
+      sp_diag_info <- list(
+        status_code = sp_details$status_code,
+        status_label = .brsm_stationary_status_labels(sp_details$status_code),
+        kappa_proxy = sp_details$kappa_proxy,
+        status_counts = .brsm_stationary_status_counts(sp_details$status_code),
+        n_draws = n_draws,
+        n_excluded = sum(sp_details$status_code != 0L),
+        pct_excluded = mean(sp_details$status_code != 0L),
+        function_name = "canonical_analysis"
+      )
     }
   }
 
@@ -211,6 +225,7 @@ canonical_analysis.default <- function(object,
       eigenvectors = eigenvectors
     )
     if (!is.null(scores)) out$scores <- scores
+    if (!is.null(sp_diag_info)) attr(out, "diagnostics") <- sp_diag_info
     return(out)
   }
 
@@ -309,5 +324,6 @@ canonical_analysis.default <- function(object,
     out$scores <- score_summary
   }
 
+  if (!is.null(sp_diag_info)) attr(out, "diagnostics") <- sp_diag_info
   out
 }

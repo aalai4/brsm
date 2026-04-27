@@ -308,7 +308,7 @@ brsm_workflow <- function(object,
   }
 
   if ("classification" %in% steps) {
-    out$classification <- classify_stationarity_point(
+    out$classification <- classify_stationary_point(
       object = dispatch_object,
       factor_names = factor_names
     )
