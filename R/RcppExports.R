@@ -14,6 +14,18 @@ stationary_points_batch <- function(h_array, b_matrix, kappa_thresh) {
     .Call(`_brsm_stationary_points_batch`, h_array, b_matrix, kappa_thresh)
 }
 
+#' Detailed Batch Stationary Point Solver
+#'
+#' @param h_array Hessian array with dimensions draws x p x p.
+#' @param b_matrix Linear coefficient matrix with dimensions draws x p.
+#' @param kappa_thresh Condition-number threshold for near-singularity.
+#'
+#' @return A list with stationary points, per-draw status codes, and kappa proxies.
+#' @keywords internal
+stationary_points_batch_details <- function(h_array, b_matrix, kappa_thresh) {
+    .Call(`_brsm_stationary_points_batch_details`, h_array, b_matrix, kappa_thresh)
+}
+
 #' Convert Prediction Matrix to Long-Format Data Frame
 #'
 #' @param pred_matrix A matrix of predictions (n_draws x n_points)

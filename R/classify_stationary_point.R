@@ -19,17 +19,17 @@
 #'   an additional numeric column \code{kappa} is included.
 #'
 #' @export
-classify_stationarity_point <- function(
+classify_stationary_point <- function(
     object,
     factor_names = NULL,
     tol = 1e-8,
     return_kappa = FALSE) {
-  UseMethod("classify_stationarity_point")
+  UseMethod("classify_stationary_point")
 }
 
-#' @rdname classify_stationarity_point
+#' @rdname classify_stationary_point
 #' @export
-classify_stationarity_point.brsm_fit <- function(
+classify_stationary_point.brsm_fit <- function(
     object,
     factor_names = NULL,
     tol = 1e-8,
@@ -37,7 +37,7 @@ classify_stationarity_point.brsm_fit <- function(
   if (is.null(factor_names)) {
     factor_names <- object$factor_names
   }
-  classify_stationarity_point.default(
+  classify_stationary_point.default(
     as_brsm_draws(object),
     factor_names = factor_names,
     tol = tol,
@@ -45,9 +45,9 @@ classify_stationarity_point.brsm_fit <- function(
   )
 }
 
-#' @rdname classify_stationarity_point
+#' @rdname classify_stationary_point
 #' @export
-classify_stationarity_point.default <- function(
+classify_stationary_point.default <- function(
     object,
     factor_names = NULL,
     tol = 1e-8,

@@ -6,11 +6,32 @@
 \alias{stationary_point.default}
 \title{Identify Stationary Points of Response Surface}
 \usage{
-stationary_point(object, factor_names = NULL, kappa_thresh = 1e+10)
+stationary_point(
+  object,
+  factor_names = NULL,
+  kappa_thresh = 1e+10,
+  diagnostics = c("none", "basic", "full"),
+  auto_guidance = TRUE,
+  sensitivity_thresholds = c(1e+08, 1e+10, 1e+12)
+)
 
-\method{stationary_point}{brsm_fit}(object, factor_names = NULL, kappa_thresh = 1e+10)
+\method{stationary_point}{brsm_fit}(
+  object,
+  factor_names = NULL,
+  kappa_thresh = 1e+10,
+  diagnostics = c("none", "basic", "full"),
+  auto_guidance = TRUE,
+  sensitivity_thresholds = c(1e+08, 1e+10, 1e+12)
+)
 
-\method{stationary_point}{default}(object, factor_names = NULL, kappa_thresh = 1e+10)
+\method{stationary_point}{default}(
+  object,
+  factor_names = NULL,
+  kappa_thresh = 1e+10,
+  diagnostics = c("none", "basic", "full"),
+  auto_guidance = TRUE,
+  sensitivity_thresholds = c(1e+08, 1e+10, 1e+12)
+)
 }
 \arguments{
 \item{object}{A `brsm_fit` object, `brmsfit` object, or
@@ -20,6 +41,17 @@ data frame of posterior draws with Bayesian coefficient columns.}
 (if object is data frame).}
 
 \item{kappa_thresh}{Threshold for computing condition numbers of Hessian.}
+
+\item{diagnostics}{Diagnostic reporting level. One of \code{"none"}
+(default), \code{"basic"}, or \code{"full"}. When not \code{"none"},
+a diagnostics list is attached as an attribute on the returned data frame.}
+
+\item{auto_guidance}{Logical; if \code{TRUE} (default), emit guidance
+warnings when exclusion rates are high or threshold sensitivity is unstable.}
+
+\item{sensitivity_thresholds}{Numeric vector of condition-number thresholds
+used when \code{diagnostics = "full"}. Defaults to
+\code{c(1e8, 1e10, 1e12)}.}
 }
 \value{
 A data frame with stationary points and their properties.

@@ -24,7 +24,7 @@ Tools for analyzing posterior distributions of quadratic response surfaces from 
 
 - **Bayesian quadratic model fitting** with `fit_brsm()`
 - **Posterior surface prediction** with `predict_surface()` and `posterior_predict_brsm()`
-- **Canonical/stationarity diagnostics** with `canonical_analysis()`, `stationary_point()`, and `classify_stationarity_point()`
+- **Canonical/stationarity diagnostics** with `canonical_analysis()`, `stationary_point()`, and `classify_stationary_point()`
 - **Optimization tools** including `posterior_ridge_analysis()`, `steepest_ascent()`, `credible_optimum_region()`, and `optimize_brsm_multiresponse()`
 - **Design and priors helpers** via `generate_brsm_design()` and `specify_brsm_priors()`
 - **Model adequacy checks** with `loftest_brsm()`, `check_brsm_fit()`, and `check_brsm_ppc()`
@@ -57,7 +57,7 @@ fit <- fit_brsm(
 # Characterize the response surface
 stationarity <- fit |> 
   stationary_point() |>
-  classify_stationarity_point()
+  classify_stationary_point()
 
 ridge <- fit |> posterior_ridge_analysis()
 
@@ -88,7 +88,7 @@ sp2 <- stationary_point(draws, factor_names = c("x1", "x2"))
 ### Analysis Functions (S3 Methods)
 - `canonical_analysis()`: Posterior canonical decomposition of the quadratic form
 - `stationary_point()`: Identify critical points of the response surface
-- `classify_stationarity_point()`: Classify points (maximum, minimum, saddle)
+- `classify_stationary_point()`: Classify points (maximum, minimum, saddle)
 - `posterior_ridge_analysis()`: Ridge analysis at specified radii
 - `credible_optimum_region()`: Compute credible regions around optimum
 - `steepest_ascent()`: Compute steepest ascent path from starting point
@@ -135,7 +135,7 @@ comparison <- compare_brsm_models(
 
 # 4. CHARACTERIZE RESPONSE SURFACE
 critical <- fit |> stationary_point()
-classification <- critical |> classify_stationarity_point()
+classification <- critical |> classify_stationary_point()
 ridge <- fit |> posterior_ridge_analysis()
 
 # 5. GENERATE PREDICTIONS
