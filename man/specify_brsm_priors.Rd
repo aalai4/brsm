@@ -7,6 +7,7 @@
 specify_brsm_priors(
   factor_names,
   model_terms = c("second_order", "first_order", "first_order_twi", "pure_quadratic"),
+  prior_profile = c("legacy", "regularized", "adaptive"),
   coefficient_family = c("normal", "student_t"),
   intercept_sd = 5,
   linear_sd = 2,
@@ -61,12 +62,8 @@ A \code{brmsprior} object that can be passed directly to
   [fit_brsm()] or \code{brms::brm()} as the \code{prior} argument.
 }
 \description{
-Constructs a coherent set of \code{brms} priors for quadratic response
-surface models used by [fit_brsm()]. Priors are generated for intercept,
-linear, interaction, quadratic, and residual sigma terms according to the
-selected \code{model_terms} structure.
-}
-\details{
-This utility is designed to reduce repetitive prior boilerplate and to make
-prior choices explicit and reproducible in BRSM workflows.
+Builds \code{brms} priors for quadratic response-surface models used by
+[fit_brsm()]. Priors are generated for intercept, linear, interaction,
+quadratic, and residual sigma terms according to
+\code{model_terms}.
 }

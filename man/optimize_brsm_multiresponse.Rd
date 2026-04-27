@@ -73,16 +73,13 @@ desirability matrix in output.}
 A list with components:
   \code{candidate_points} (with desirability summaries),
   \code{best_point} (single-row data frame), \code{response_at_best}
-  (per-response summary at best point), \code{draw_count},
+  (per-response summary at the selected point), \code{draw_count},
   \code{desirability_specs}, and optional
   \code{combined_desirability_draws}.
 }
 \description{
-Optimizes multiple responses simultaneously by combining response-specific
-desirability functions over posterior predictions at candidate points.
-}
-\details{
-For each response model, posterior predictions are computed at all candidate
-points via [posterior_predict_brsm()]. Response values are transformed to
-desirabilities in \eqn{[0, 1]} and combined using a weighted geometric mean.
+Combines response-specific desirability functions over posterior predictions
+at candidate points. Predictions are obtained with
+[posterior_predict_brsm()], mapped to \eqn{[0, 1]}, and aggregated with a
+weighted geometric mean.
 }

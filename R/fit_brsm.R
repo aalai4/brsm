@@ -68,6 +68,7 @@ fit_brsm <- function(data,
                      factor_names,
                      ranges = NULL,
                      prior = NULL,
+                     prior_profile = c("legacy", "regularized", "adaptive"),
                      family = stats::gaussian(),
                      chains = 4,
                      iter = 2000,
@@ -97,6 +98,7 @@ fit_brsm <- function(data,
     stop("response must be a single character string.")
   }
 
+  prior_profile <- match.arg(prior_profile)
   sampling_preset <- match.arg(sampling_preset)
   model_terms <- match.arg(model_terms)
 
@@ -173,6 +175,17 @@ fit_brsm <- function(data,
   formula_text <- paste(response, "~", paste(rhs_terms, collapse = " + "))
   model_formula <- stats::as.formula(formula_text)
 
+  if (is.null(prior)) {
+    prior <- specify_brsm_priors(
+      factor_names = factor_names,
+      model_terms = model_terms,
+      prior_profile = prior_profile,
+      autoscale = TRUE,
+      data = data,
+      response = response
+    )
+  }
+
   brm_args <- list(
     formula = model_formula,
     data = data,
@@ -200,6 +213,7 @@ fit_brsm <- function(data,
     coding = coding,
     model_terms = model_terms,
     sampling = list(
+      prior_profile = prior_profile,
       sampling_preset = sampling_preset,
       control = control,
       chains = chains,
