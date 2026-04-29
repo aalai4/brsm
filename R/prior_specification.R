@@ -185,6 +185,36 @@ specify_brsm_priors <- function(
   quadratic_scale <- quadratic_sd * scale_multiplier
   sigma_prior_scale <- sigma_scale * scale_multiplier
 
+  linear_terms <- factor_names
+  interaction_terms <- character(0)
+  if (length(factor_names) > 1L) {
+    pairs <- utils::combn(factor_names, 2, simplify = FALSE)
+    interaction_terms <- vapply(pairs, function(pair) {
+      paste0(pair[[1]], ":", pair[[2]])
+    }, character(1))
+  }
+  quadratic_terms <- paste0("I(", factor_names, "^2)")
+
+  include_interactions <- model_terms %in% c("second_order", "first_order_twi")
+  include_quadratic <- model_terms %in% c("second_order", "pure_quadratic")
+
+  available_b_coefs <- .brsm_default_prior_b_coefs(
+    response = response,
+    linear_terms = linear_terms,
+    interaction_terms = interaction_terms,
+    quadratic_terms = quadratic_terms,
+    include_interactions = include_interactions,
+    include_quadratic = include_quadratic,
+    data = data
+  )
+
+  term_groups <- list(
+    linear = linear_terms,
+    interaction = if (include_interactions) interaction_terms else character(0),
+    quadratic = if (include_quadratic) quadratic_terms else character(0)
+  )
+  resolved <- .brsm_resolve_b_prior_targets(term_groups, available_b_coefs)
+
   prior_list <- list()
 
   if (isTRUE(include_intercept)) {
@@ -194,7 +224,15 @@ specify_brsm_priors <- function(
     )
   }
 
-  for (f in factor_names) {
+  need_global_b <- !is.null(available_b_coefs) && any(lengths(resolved$unmatched) > 0L)
+  if (need_global_b) {
+    prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
+      .brsm_prior_string(coefficient_family, 0, linear_scale, student_df),
+      class = "b"
+    )
+  }
+
+  for (f in resolved$matched$linear) {
     prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
       .brsm_prior_string(coefficient_family, 0, linear_scale, student_df),
       class = "b",
@@ -202,25 +240,22 @@ specify_brsm_priors <- function(
     )
   }
 
-  include_interactions <- model_terms %in% c("second_order", "first_order_twi")
-  if (include_interactions && length(factor_names) > 1L) {
-    pairs <- utils::combn(factor_names, 2, simplify = FALSE)
-    for (pair in pairs) {
+  if (length(resolved$matched$interaction) > 0L) {
+    for (coef_name in resolved$matched$interaction) {
       prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
         .brsm_prior_string(coefficient_family, 0, interaction_scale, student_df),
         class = "b",
-        coef = paste0(pair[1], ":", pair[2])
+        coef = coef_name
       )
     }
   }
 
-  include_quadratic <- model_terms %in% c("second_order", "pure_quadratic")
-  if (include_quadratic) {
-    for (f in factor_names) {
+  if (length(resolved$matched$quadratic) > 0L) {
+    for (coef_name in resolved$matched$quadratic) {
       prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
         .brsm_prior_string(coefficient_family, 0, quadratic_scale, student_df),
         class = "b",
-        coef = paste0("I(", f, "^2)")
+        coef = coef_name
       )
     }
   }
@@ -257,4 +292,153 @@ specify_brsm_priors <- function(
   if (!is.numeric(x) || length(x) != 1L || !is.finite(x) || x <= 0) {
     stop(name, " must be a finite numeric scalar > 0.")
   }
+}
+
+
+.brsm_default_prior_b_coefs <- function(response,
+                                        linear_terms,
+                                        interaction_terms,
+                                        quadratic_terms,
+                                        include_interactions,
+                                        include_quadratic,
+                                        data) {
+  if (is.null(data) || !is.data.frame(data) ||
+      is.null(response) || !is.character(response) || length(response) != 1L ||
+      !response %in% names(data)) {
+    return(NULL)
+  }
+
+  rhs_terms <- c(linear_terms)
+  if (isTRUE(include_interactions)) {
+    rhs_terms <- c(rhs_terms, interaction_terms)
+  }
+  if (isTRUE(include_quadratic)) {
+    rhs_terms <- c(rhs_terms, quadratic_terms)
+  }
+
+  if (length(rhs_terms) == 0L) {
+    return(NULL)
+  }
+
+  formula_text <- paste(response, "~", paste(rhs_terms, collapse = " + "))
+  model_formula <- stats::as.formula(formula_text)
+
+  prior_df <- tryCatch(
+    as.data.frame(brms::default_prior(model_formula, data = data)),
+    error = function(e) NULL
+  )
+
+  if (is.null(prior_df) || !all(c("class", "coef") %in% names(prior_df))) {
+    return(NULL)
+  }
+
+  coefs <- unique(prior_df$coef[prior_df$class == "b"])
+  coefs <- coefs[!is.na(coefs) & nzchar(coefs)]
+  if (length(coefs) == 0L) NULL else as.character(coefs)
+}
+
+
+.brsm_resolve_b_prior_targets <- function(term_groups, available_b_coefs) {
+  if (is.null(available_b_coefs)) {
+    return(list(
+      matched = term_groups,
+      unmatched = lapply(term_groups, function(x) character(0))
+    ))
+  }
+
+  matched <- list(linear = character(0), interaction = character(0), quadratic = character(0))
+  unmatched <- list(linear = character(0), interaction = character(0), quadratic = character(0))
+
+  for (coef in term_groups$linear) {
+    resolved <- .brsm_resolve_linear_coef(coef, available_b_coefs)
+    if (is.na(resolved)) {
+      unmatched$linear <- c(unmatched$linear, coef)
+    } else {
+      matched$linear <- c(matched$linear, resolved)
+    }
+  }
+
+  for (coef in term_groups$interaction) {
+    resolved <- .brsm_resolve_interaction_coef(coef, available_b_coefs)
+    if (is.na(resolved)) {
+      unmatched$interaction <- c(unmatched$interaction, coef)
+    } else {
+      matched$interaction <- c(matched$interaction, resolved)
+    }
+  }
+
+  for (coef in term_groups$quadratic) {
+    resolved <- .brsm_resolve_quadratic_coef(coef, available_b_coefs)
+    if (is.na(resolved)) {
+      unmatched$quadratic <- c(unmatched$quadratic, coef)
+    } else {
+      matched$quadratic <- c(matched$quadratic, resolved)
+    }
+  }
+
+  matched <- lapply(matched, unique)
+  list(matched = matched, unmatched = unmatched)
+}
+
+
+.brsm_resolve_linear_coef <- function(coef, available_b_coefs) {
+  if (coef %in% available_b_coefs) {
+    return(coef)
+  }
+
+  alt <- make.names(coef)
+  if (alt %in% available_b_coefs) {
+    return(alt)
+  }
+
+  NA_character_
+}
+
+
+.brsm_resolve_interaction_coef <- function(coef, available_b_coefs) {
+  parts <- strsplit(coef, ":", fixed = TRUE)[[1]]
+  if (length(parts) != 2L) {
+    return(NA_character_)
+  }
+
+  c1 <- parts[1]
+  c2 <- parts[2]
+  candidates <- unique(c(
+    paste0(c1, ":", c2),
+    paste0(c2, ":", c1),
+    paste0(c1, ".", c2),
+    paste0(c2, ".", c1),
+    make.names(paste0(c1, ":", c2)),
+    make.names(paste0(c2, ":", c1))
+  ))
+
+  found <- intersect(candidates, available_b_coefs)
+  if (length(found) == 0L) NA_character_ else found[[1L]]
+}
+
+
+.brsm_resolve_quadratic_coef <- function(coef, available_b_coefs) {
+  f <- sub("^I\\((.+)\\^2\\)$", "\\1", coef)
+  canonical <- paste0("I(", f, "^2)")
+  candidates <- unique(c(
+    canonical,
+    make.names(canonical),
+    paste0("I", f, "E2"),
+    paste0("I", f, ".2"),
+    paste0("I.", f, ".2")
+  ))
+
+  found <- intersect(candidates, available_b_coefs)
+  if (length(found) > 0L) {
+    return(found[[1L]])
+  }
+
+  idx <- which(
+    grepl(f, available_b_coefs, fixed = TRUE) &
+      (grepl("\\^2\\)", available_b_coefs) |
+         grepl("E2", available_b_coefs, fixed = TRUE) |
+         grepl("\\.2\\.?", available_b_coefs))
+  )
+
+  if (length(idx) == 0L) NA_character_ else available_b_coefs[idx[[1L]]]
 }
