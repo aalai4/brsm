@@ -139,3 +139,33 @@ test_that("specify_brsm_priors validates numeric scales and flags", {
     "include_sigma must be TRUE or FALSE"
   )
 })
+
+test_that("prior term resolver maps sanitized quadratic and interaction names", {
+  term_groups <- list(
+    linear = c("x1", "x2"),
+    interaction = c("x1:x2"),
+    quadratic = c("I(x1^2)", "I(x2^2)")
+  )
+
+  available <- c("x1", "x2", "x1.x2", "Ix1E2", "Ix2E2")
+  resolved <- .brsm_resolve_b_prior_targets(term_groups, available)
+
+  expect_equal(resolved$matched$linear, c("x1", "x2"))
+  expect_equal(resolved$matched$interaction, "x1.x2")
+  expect_equal(resolved$matched$quadratic, c("Ix1E2", "Ix2E2"))
+  expect_length(unlist(resolved$unmatched), 0)
+})
+
+test_that("prior term resolver records unmatched terms for class-b fallback", {
+  term_groups <- list(
+    linear = c("x1", "x2"),
+    interaction = c("x1:x2"),
+    quadratic = c("I(x1^2)", "I(x2^2)")
+  )
+
+  available <- c("x1", "x2", "x1:x2", "I(x1^2)")
+  resolved <- .brsm_resolve_b_prior_targets(term_groups, available)
+
+  expect_equal(resolved$matched$quadratic, "I(x1^2)")
+  expect_equal(resolved$unmatched$quadratic, "I(x2^2)")
+})
