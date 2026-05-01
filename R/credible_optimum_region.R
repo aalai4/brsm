@@ -10,8 +10,12 @@
 #'   (if object is data frame).
 #' @param probs Probability levels for credible intervals
 #'   (default: 95\% interval).
+<<<<<<< HEAD
 #' @param summary If \code{TRUE}, return region boundaries as a summary
 #'   data frame; if \code{FALSE}, return all posterior draws.
+=======
+#' @param summary If TRUE, return region boundaries; if FALSE, return all draws.
+>>>>>>> 0835c3587c4febc07838bcbf42460120539d8356
 #'
 #' @return Data frame with credible region boundaries or posterior draws.
 #'

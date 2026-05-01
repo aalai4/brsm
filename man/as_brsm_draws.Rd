@@ -32,11 +32,19 @@ posterior draws/coefficients.}
 
 \item{...}{Additional arguments (currently unused).}
 
+<<<<<<< HEAD
 \item{require_quadratic}{Logical; if \code{TRUE} (default), require quadratic
 terms (\code{b_I(x^2)} columns) to be present in the draw data frame.}
 
 \item{require_interactions}{Logical; if \code{TRUE} (default), require
 interaction term columns to be present in the draw data frame.}
+=======
+\item{require_quadratic}{Logical; data.frame method only. If \code{TRUE},
+require canonical quadratic columns \code{b_I(x^2)}.}
+
+\item{require_interactions}{Logical; data.frame method only. If
+\code{TRUE}, require pairwise interaction columns.}
+>>>>>>> 0835c3587c4febc07838bcbf42460120539d8356
 }
 \value{
 A data frame with brsm-compatible column names:

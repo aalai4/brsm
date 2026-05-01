@@ -36,10 +36,15 @@ ranges are inferred from \code{data}.}
 
 \item{prior}{Optional prior specification passed to \code{brms::brm()}.}
 
+<<<<<<< HEAD
 \item{prior_profile}{Prior profile to use when \code{prior = NULL}. One of
 \code{"legacy"} (flat, wide normal priors), \code{"regularized"}
 (moderate shrinkage), or \code{"adaptive"} (data-scaled priors).
 Default is \code{"legacy"}.}
+=======
+\item{prior_profile}{Prior profile used when \code{prior = NULL}. One of
+\code{"legacy"}, \code{"regularized"}, or \code{"adaptive"}.}
+>>>>>>> 0835c3587c4febc07838bcbf42460120539d8356
 
 \item{family}{Model family passed to \code{brms::brm()}.}
 

@@ -6,6 +6,10 @@
 #' @param object A `brsm_fit` object, `brmsfit` object, or a data frame of
 #'   posterior draws/coefficients.
 #' @param factor_names Character vector of factor names (e.g., c("x1", "x2")).
+#' @param require_quadratic Logical; data.frame method only. If \code{TRUE},
+#'   require canonical quadratic columns \code{b_I(x^2)}.
+#' @param require_interactions Logical; data.frame method only. If
+#'   \code{TRUE}, require pairwise interaction columns.
 #' @param ... Additional arguments (currently unused).
 #' @param require_quadratic Logical; if \code{TRUE} (default), require quadratic
 #'   terms (\code{b_I(x^2)} columns) to be present in the draw data frame.
