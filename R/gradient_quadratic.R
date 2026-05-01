@@ -1,3 +1,49 @@
+#' Compute the Posterior Gradient of a Quadratic Response Surface
+#'
+#' Evaluates the gradient of the fitted quadratic response surface at one or
+#' more points \code{x} for every posterior draw. The gradient of the quadratic
+#' model \eqn{f(x) = \beta_0 + b^\top x + x^\top B x} is
+#' \eqn{\nabla f(x) = b + 2Bx}, where \eqn{b} is the vector of linear
+#' coefficients and \eqn{B} is the symmetric curvature matrix.
+#'
+#' @param draws A data frame of posterior draws as returned by
+#'   \code{\link{as_brsm_draws}}.
+#' @param x A numeric vector (single point) or numeric matrix (multiple points)
+#'   of factor values at which to evaluate the gradient. Columns must match
+#'   \code{factor_names}.
+#' @param factor_names Character vector of factor names. Must match columns
+#'   present in \code{draws}.
+#' @param normalize Logical; if \code{TRUE}, each gradient vector is scaled to
+#'   unit length (useful for visualizing direction of steepest ascent).
+#'   Default is \code{FALSE}.
+#'
+#' @return A data frame with one row per (draw, point) combination containing:
+#'   \describe{
+#'     \item{\code{draw}}{Integer index of the posterior draw.}
+#'     \item{\code{point_id}}{Integer index of the evaluation point.}
+#'     \item{factor columns}{The factor values at which the gradient was evaluated.}
+#'     \item{\code{d_d<factor>}}{Partial derivative with respect to each factor.}
+#'   }
+#'
+#' @seealso \code{\link{hessian_quadratic}}, \code{\link{stationary_point}},
+#'   \code{\link{steepest_ascent}}
+#'
+#' @examples
+#' \dontrun{
+#' draws <- as_brsm_draws(fit)
+#' # Evaluate gradient at the coded center (0, 0)
+#' grad <- gradient_quadratic(
+#'   draws      = draws,
+#'   x          = c(0, 0),
+#'   factor_names = c("x1", "x2")
+#' )
+#' head(grad)
+#'
+#' # Evaluate at multiple points
+#' pts <- matrix(c(-1, 0, 1, -1, 0, 1), ncol = 2)
+#' grad_multi <- gradient_quadratic(draws, x = pts, factor_names = c("x1", "x2"))
+#' }
+#' @export
 gradient_quadratic <- function(draws, x, factor_names, normalize = FALSE) {
   draws <- .brsm_validate_draws(draws)
   factor_names <- .brsm_validate_factor_names(factor_names)

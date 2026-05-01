@@ -1,3 +1,46 @@
+#' Compute the Posterior Hessian of a Quadratic Response Surface
+#'
+#' Returns the Hessian matrix of the quadratic response surface for every
+#' posterior draw. For the quadratic model
+#' \eqn{f(x) = \beta_0 + b^\top x + x^\top B x}, the Hessian is the constant
+#' matrix \eqn{H = 2B}. Because the Hessian is constant (does not depend on
+#' \eqn{x}), posterior uncertainty in \eqn{H} arises entirely from posterior
+#' uncertainty in the curvature coefficients \eqn{B}.
+#'
+#' The eigenvalues of \eqn{H} determine the curvature class of the stationary
+#' point: all negative \eqn{\Rightarrow} maximum, all positive
+#' \eqn{\Rightarrow} minimum, mixed \eqn{\Rightarrow} saddle point.
+#'
+#' @param draws A data frame of posterior draws as returned by
+#'   \code{\link{as_brsm_draws}}.
+#' @param factor_names Character vector of factor names. Must match columns
+#'   present in \code{draws}.
+#'
+#' @return A data frame in long format with one row per (draw, row factor,
+#'   column factor) combination containing:
+#'   \describe{
+#'     \item{\code{draw}}{Integer index of the posterior draw.}
+#'     \item{\code{row_factor}}{Factor name for the Hessian row.}
+#'     \item{\code{col_factor}}{Factor name for the Hessian column.}
+#'     \item{\code{value}}{The Hessian entry \eqn{H_{jk} = 2B_{jk}}.}
+#'   }
+#'
+#' @seealso \code{\link{gradient_quadratic}}, \code{\link{canonical_analysis}},
+#'   \code{\link{classify_stationary_point}}
+#'
+#' @examples
+#' \dontrun{
+#' draws <- as_brsm_draws(fit)
+#' hess <- hessian_quadratic(draws, factor_names = c("x1", "x2"))
+#' head(hess)
+#'
+#' # Posterior mean Hessian matrix
+#' library(dplyr)
+#' hess |>
+#'   group_by(row_factor, col_factor) |>
+#'   summarise(mean_H = mean(value))
+#' }
+#' @export
 hessian_quadratic <- function(draws, factor_names) {
   draws <- .brsm_validate_draws(draws)
   factor_names <- .brsm_validate_factor_names(factor_names)

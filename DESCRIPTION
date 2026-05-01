@@ -21,13 +21,16 @@ Imports:
     stats,
     ggplot2,
     viridis,
-  Rcpp
+    Rcpp
 LinkingTo:
-  Rcpp
+    Rcpp
 Suggests:
-  brms,
+    brms,
     testthat (>= 3.0.0),
-    rsm
+    rsm,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
 Config/testthat/edition: 3
-URL: https://github.com/aalai4/brsm
-BugReports: https://github.com/aalai4/brsm/issues
+URL: https://github.com/aalai4/final-project-451-892-a_square
+BugReports: https://github.com/aalai4/final-project-451-892-a_square/issues

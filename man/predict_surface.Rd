@@ -84,3 +84,20 @@ Supports S3 dispatch for `brsm_fit`, `brmsfit`, and draw data frames.
 For `brsm_fit` objects, `factor_names` are inferred from metadata when
 omitted.
 }
+\examples{
+\dontrun{
+fit <- fit_brsm(data = my_data, response = "y",
+                factor_names = c("x1", "x2"), chains = 2, seed = 1)
+
+# Define a grid of predictor values
+grid <- expand.grid(x1 = seq(-1, 1, length.out = 10),
+                    x2 = seq(-1, 1, length.out = 10))
+
+# Posterior mean and 95\% credible interval at each grid point
+preds <- predict_surface(fit, newdata = grid, summary = TRUE)
+head(preds)
+
+# Draw-level predictions (long format)
+preds_long <- predict_surface(fit, newdata = grid, summary = FALSE)
+}
+}

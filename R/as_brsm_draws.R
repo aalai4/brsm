@@ -7,6 +7,10 @@
 #'   posterior draws/coefficients.
 #' @param factor_names Character vector of factor names (e.g., c("x1", "x2")).
 #' @param ... Additional arguments (currently unused).
+#' @param require_quadratic Logical; if \code{TRUE} (default), require quadratic
+#'   terms (\code{b_I(x^2)} columns) to be present in the draw data frame.
+#' @param require_interactions Logical; if \code{TRUE} (default), require
+#'   interaction term columns to be present in the draw data frame.
 #'
 #' @return A data frame with brsm-compatible column names:
 #'   - b_Intercept: intercept

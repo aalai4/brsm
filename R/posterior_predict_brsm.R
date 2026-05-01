@@ -29,6 +29,10 @@
 #'   \code{summary = FALSE} and \code{return_matrix = FALSE}.
 #' @param seed Optional random seed for predictive noise draws.
 #'
+#' @param .sigma_source_draws Internal. Raw posterior draw data frame used
+#'   to resolve sigma when called from \code{brsm_fit} or \code{brmsfit}
+#'   methods. Users should not set this directly.
+#'
 #' @return A prediction object as matrix, long-format data frame, or summary
 #'   data frame depending on options.
 #' @export
@@ -43,7 +47,8 @@ posterior_predict_brsm <- function(object,
                                    max_draws = NULL,
                                    return_matrix = FALSE,
                                    output_chunk_size = NULL,
-                                   seed = NULL) {
+                                   seed = NULL,
+                                   .sigma_source_draws = NULL) {
   UseMethod("posterior_predict_brsm")
 }
 
@@ -60,7 +65,8 @@ posterior_predict_brsm.brsm_fit <- function(object,
                                             max_draws = NULL,
                                             return_matrix = FALSE,
                                             output_chunk_size = NULL,
-                                            seed = NULL) {
+                                            seed = NULL,
+                                            .sigma_source_draws = NULL) {
   if (is.null(factor_names)) {
     factor_names <- object$factor_names
   }
@@ -111,7 +117,8 @@ posterior_predict_brsm.brmsfit <- function(object,
                                            max_draws = NULL,
                                            return_matrix = FALSE,
                                            output_chunk_size = NULL,
-                                           seed = NULL) {
+                                           seed = NULL,
+                                           .sigma_source_draws = NULL) {
   if (is.null(factor_names)) {
     stop("factor_names must be supplied for brmsfit objects.")
   }

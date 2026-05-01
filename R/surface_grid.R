@@ -1,3 +1,20 @@
+#' Generate a Regular Grid over Factor Ranges
+#'
+#' Creates an expanded prediction grid spanning the specified factor ranges,
+#' which is used internally for surface evaluation and contour plotting.
+#'
+#' @param ranges A named list of numeric vectors of length 2, one per factor,
+#'   giving the \code{c(min, max)} range for each factor.
+#' @param n Integer; number of equally-spaced grid points per factor.
+#'   Must be \eqn{\geq 2}. Default is \code{50}.
+#' @param center Optional named numeric vector. If supplied, this point is
+#'   guaranteed to appear in the grid (appended if not already present).
+#'
+#' @return A data frame with one column per factor and \code{n^p} rows
+#'   (where \code{p} is the number of factors), representing the full
+#'   factorial grid of evaluation points.
+#'
+#' @export
 surface_grid <- function(ranges,
                          n = 50,
                          center = NULL) {

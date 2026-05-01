@@ -13,5 +13,8 @@
 ^.*\.log$
 ^profile_rcpp_optimization\.R$
 ^RCPP_.*\.md$
-^\.positai$
+^\.vscode$
 ^\.claude$
+^\.positai$
+^doc$
+^Meta$

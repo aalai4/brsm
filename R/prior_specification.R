@@ -9,6 +9,10 @@
 #' @param model_terms Polynomial term specification. One of
 #'   \code{"second_order"}, \code{"first_order"}, \code{"first_order_twi"},
 #'   or \code{"pure_quadratic"}.
+#' @param prior_profile Prior profile controlling default scale parameters.
+#'   One of \code{"legacy"} (wide flat priors), \code{"regularized"}
+#'   (moderately shrinking), or \code{"adaptive"} (data-scaled). User-supplied
+#'   scale arguments always override profile defaults.
 #' @param coefficient_family Prior family for intercept and slope terms.
 #'   One of \code{"normal"} or \code{"student_t"}.
 #' @param intercept_sd Base scale for intercept prior.

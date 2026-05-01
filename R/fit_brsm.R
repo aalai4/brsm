@@ -10,6 +10,10 @@
 #' @param ranges Optional named list of factor ranges. If \code{NULL},
 #'   ranges are inferred from \code{data}.
 #' @param prior Optional prior specification passed to \code{brms::brm()}.
+#' @param prior_profile Prior profile to use when \code{prior = NULL}. One of
+#'   \code{"legacy"} (flat, wide normal priors), \code{"regularized"}
+#'   (moderate shrinkage), or \code{"adaptive"} (data-scaled priors).
+#'   Default is \code{"legacy"}.
 #' @param family Model family passed to \code{brms::brm()}.
 #' @param chains Number of MCMC chains.
 #' @param iter Number of iterations per chain.
@@ -22,10 +26,10 @@
 #' @param control Optional named list of NUTS control arguments. Values here
 #'   override defaults from \code{sampling_preset}.
 #' @param model_terms Polynomial term specification. One of
-#'   \\code{"second_order"} (default; linear + two-way interactions +
-#'   pure quadratic terms), \\code{"first_order"} (linear only),
-#'   \\code{"first_order_twi"} (linear + two-way interactions), or
-#'   \\code{"pure_quadratic"} (linear + pure quadratic terms).
+#'   \code{"second_order"} (default; linear + two-way interactions +
+#'   pure quadratic terms), \code{"first_order"} (linear only),
+#'   \code{"first_order_twi"} (linear + two-way interactions), or
+#'   \code{"pure_quadratic"} (linear + pure quadratic terms).
 #' @param coding_policy How to handle missing coding metadata from
 #'   [prepare_brsm_data()]. One of \code{"warn"} (default),
 #'   \code{"error"}, or \code{"ignore"}.
@@ -33,7 +37,7 @@
 #'
 #' @return An object of class \code{brsm_fit} with elements:
 #'   \code{fit}, \code{formula}, \code{response}, \code{factor_names},
-#'   \\code{ranges}, \\code{model_terms}, and \\code{call}.
+#'   \code{ranges}, \code{model_terms}, and \code{call}.
 #'
 #' @examples
 #' \dontrun{

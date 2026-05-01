@@ -28,16 +28,17 @@ credible_optimum_region(
 )
 }
 \arguments{
-\item{object}{A `brsm_fit` object, `brmsfit` object, or
+\item{object}{A \code{brsm_fit} object, \code{brmsfit} object, or
 data frame of posterior draws with Bayesian coefficient columns.}
 
 \item{factor_names}{Character vector of factor names
 (if object is data frame).}
 
 \item{probs}{Probability levels for credible intervals
-(default: 95% interval).}
+(default: 95\% interval).}
 
-\item{summary}{If TRUE, return region boundaries; if FALSE, return all draws.}
+\item{summary}{If \code{TRUE}, return region boundaries as a summary
+data frame; if \code{FALSE}, return all posterior draws.}
 }
 \value{
 Data frame with credible region boundaries or posterior draws.

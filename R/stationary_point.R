@@ -18,8 +18,28 @@
 #'   used when \code{diagnostics = "full"}. Defaults to
 #'   \code{c(1e8, 1e10, 1e12)}.
 #'
-#' @return A data frame with stationary points and their properties.
 #'
+#' @examples
+#' \dontrun{
+#' # Fit a model first
+#' fit <- fit_brsm(
+#'   data = my_data,
+#'   response = "y",
+#'   factor_names = c("x1", "x2"),
+#'   chains = 2, iter = 1000, seed = 42
+#' )
+#'
+#' # Compute posterior stationary points (x* = -1/2 B^{-1} b)
+#' sp <- stationary_point(fit)
+#' head(sp)
+#'
+#' # Posterior mean location of the optimum
+#' colMeans(sp, na.rm = TRUE)
+#'
+#' # With basic diagnostics to see exclusion rate
+#' sp <- stationary_point(fit, diagnostics = "basic")
+#' attr(sp, "diagnostics")
+#' }
 #' @export
 stationary_point <- function(object,
                              factor_names = NULL,

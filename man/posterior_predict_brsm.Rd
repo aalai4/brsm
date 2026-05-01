@@ -19,7 +19,8 @@ posterior_predict_brsm(
   max_draws = NULL,
   return_matrix = FALSE,
   output_chunk_size = NULL,
-  seed = NULL
+  seed = NULL,
+  .sigma_source_draws = NULL
 )
 
 \method{posterior_predict_brsm}{brsm_fit}(
@@ -34,7 +35,8 @@ posterior_predict_brsm(
   max_draws = NULL,
   return_matrix = FALSE,
   output_chunk_size = NULL,
-  seed = NULL
+  seed = NULL,
+  .sigma_source_draws = NULL
 )
 
 \method{posterior_predict_brsm}{brmsfit}(
@@ -49,7 +51,8 @@ posterior_predict_brsm(
   max_draws = NULL,
   return_matrix = FALSE,
   output_chunk_size = NULL,
-  seed = NULL
+  seed = NULL,
+  .sigma_source_draws = NULL
 )
 
 \method{posterior_predict_brsm}{default}(
@@ -100,6 +103,10 @@ return a draw-by-point matrix instead of long-format data.}
 \code{summary = FALSE} and \code{return_matrix = FALSE}.}
 
 \item{seed}{Optional random seed for predictive noise draws.}
+
+\item{.sigma_source_draws}{Internal. Raw posterior draw data frame used
+to resolve sigma when called from \code{brsm_fit} or \code{brmsfit}
+methods. Users should not set this directly.}
 }
 \value{
 A prediction object as matrix, long-format data frame, or summary

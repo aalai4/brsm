@@ -4,13 +4,14 @@
 #' surface at specified probability levels. Useful for uncertainty
 #' quantification around the estimated optimum.
 #'
-#' @param object A `brsm_fit` object, `brmsfit` object, or
+#' @param object A \code{brsm_fit} object, \code{brmsfit} object, or
 #'   data frame of posterior draws with Bayesian coefficient columns.
 #' @param factor_names Character vector of factor names
 #'   (if object is data frame).
 #' @param probs Probability levels for credible intervals
-#'   (default: 95% interval).
-#' @param summary If TRUE, return region boundaries; if FALSE, return all draws.
+#'   (default: 95\% interval).
+#' @param summary If \code{TRUE}, return region boundaries as a summary
+#'   data frame; if \code{FALSE}, return all posterior draws.
 #'
 #' @return Data frame with credible region boundaries or posterior draws.
 #'

@@ -165,7 +165,7 @@ print.summary.brsm_fit <- function(x, ...) {
   # MCMC information
   if (!is.null(x$sampling)) {
     cat("MCMC Configuration:\n")
-    cat("  ", x$sampling$chains, " chains × ", x$sampling$iter,
+    cat("  ", x$sampling$chains, " chains x ", x$sampling$iter,
       " iterations (", x$sampling$warmup, " warmup)\n",
       sep = ""
     )
