@@ -323,7 +323,7 @@ plot_posterior_contours <- function(draws,
       ggplot2::aes(z = .data$z),
       bins = bins
     ) +
-    viridis::scale_fill_viridis(discrete = TRUE, option = "turbo") +
+    ggplot2::scale_fill_viridis_d(option = "turbo") +
     ggplot2::labs(
       x = "factor 1",
       y = "factor 2",

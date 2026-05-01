@@ -35,7 +35,7 @@ data frame of posterior draws with Bayesian coefficient columns.}
 (if object is data frame).}
 
 \item{probs}{Probability levels for credible intervals
-(default: 95% interval).}
+(default: 95\% interval).}
 
 \item{summary}{If TRUE, return region boundaries; if FALSE, return all draws.}
 }

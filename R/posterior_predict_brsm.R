@@ -28,6 +28,7 @@
 #' @param output_chunk_size Optional chunk size for long-format assembly when
 #'   \code{summary = FALSE} and \code{return_matrix = FALSE}.
 #' @param seed Optional random seed for predictive noise draws.
+#' @param ... Additional arguments (currently unused).
 #'
 #' @return A prediction object as matrix, long-format data frame, or summary
 #'   data frame depending on options.
@@ -43,7 +44,8 @@ posterior_predict_brsm <- function(object,
                                    max_draws = NULL,
                                    return_matrix = FALSE,
                                    output_chunk_size = NULL,
-                                   seed = NULL) {
+                                   seed = NULL,
+                                   ...) {
   UseMethod("posterior_predict_brsm")
 }
 
@@ -60,7 +62,8 @@ posterior_predict_brsm.brsm_fit <- function(object,
                                             max_draws = NULL,
                                             return_matrix = FALSE,
                                             output_chunk_size = NULL,
-                                            seed = NULL) {
+                                            seed = NULL,
+                                            ...) {
   if (is.null(factor_names)) {
     factor_names <- object$factor_names
   }
@@ -81,7 +84,7 @@ posterior_predict_brsm.brsm_fit <- function(object,
     require_interactions = require_interactions
   )
 
-  posterior_predict_brsm.default(
+  .posterior_predict_brsm_impl(
     object = coef_draws,
     factor_names = factor_names,
     newdata = newdata,
@@ -111,7 +114,8 @@ posterior_predict_brsm.brmsfit <- function(object,
                                            max_draws = NULL,
                                            return_matrix = FALSE,
                                            output_chunk_size = NULL,
-                                           seed = NULL) {
+                                           seed = NULL,
+                                           ...) {
   if (is.null(factor_names)) {
     stop("factor_names must be supplied for brmsfit objects.")
   }
@@ -124,7 +128,7 @@ posterior_predict_brsm.brmsfit <- function(object,
     require_interactions = FALSE
   )
 
-  posterior_predict_brsm.default(
+  .posterior_predict_brsm_impl(
     object = coef_draws,
     factor_names = factor_names,
     newdata = newdata,
@@ -155,7 +159,38 @@ posterior_predict_brsm.default <- function(object,
                                            return_matrix = FALSE,
                                            output_chunk_size = NULL,
                                            seed = NULL,
-                                           .sigma_source_draws = NULL) {
+                                           ...) {
+  .posterior_predict_brsm_impl(
+    object = object,
+    factor_names = factor_names,
+    newdata = newdata,
+    include_residual = include_residual,
+    sigma = sigma,
+    summary = summary,
+    probs = probs,
+    draw_subset = draw_subset,
+    max_draws = max_draws,
+    return_matrix = return_matrix,
+    output_chunk_size = output_chunk_size,
+    seed = seed,
+    .sigma_source_draws = NULL
+  )
+}
+
+
+.posterior_predict_brsm_impl <- function(object,
+                                         factor_names,
+                                         newdata,
+                                         include_residual,
+                                         sigma,
+                                         summary,
+                                         probs,
+                                         draw_subset,
+                                         max_draws,
+                                         return_matrix,
+                                         output_chunk_size,
+                                         seed,
+                                         .sigma_source_draws = NULL) {
   coef_draws <- .brsm_validate_draws(object)
   factor_names <- .brsm_validate_factor_names(factor_names)
 

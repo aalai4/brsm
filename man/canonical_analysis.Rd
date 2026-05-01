@@ -72,8 +72,8 @@ When \code{summary = TRUE}: a list with components
   summaries for canonical factor scores at \eqn{x^*}).
 
   When \code{summary = FALSE}: a list with components \code{eigenvalues}
-  (draws × p matrix), \code{eigenvectors} (draws × p × p array), and
-  optionally \code{scores} (draws × p matrix).
+  (draws x p matrix), \code{eigenvectors} (draws x p x p array), and
+  optionally \code{scores} (draws x p matrix).
 }
 \description{
 Computes the eigendecomposition of the quadratic Hessian (\eqn{\mathbf{B}})

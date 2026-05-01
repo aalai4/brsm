@@ -31,6 +31,12 @@ posterior draws/coefficients.}
 \item{factor_names}{Character vector of factor names (e.g., c("x1", "x2")).}
 
 \item{...}{Additional arguments (currently unused).}
+
+\item{require_quadratic}{Logical; data.frame method only. If \code{TRUE},
+require canonical quadratic columns \code{b_I(x^2)}.}
+
+\item{require_interactions}{Logical; data.frame method only. If
+\code{TRUE}, require pairwise interaction columns.}
 }
 \value{
 A data frame with brsm-compatible column names:

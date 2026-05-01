@@ -9,7 +9,7 @@
 #' @param factor_names Character vector of factor names
 #'   (if object is data frame).
 #' @param probs Probability levels for credible intervals
-#'   (default: 95% interval).
+#'   (default: 95\% interval).
 #' @param summary If TRUE, return region boundaries; if FALSE, return all draws.
 #'
 #' @return Data frame with credible region boundaries or posterior draws.

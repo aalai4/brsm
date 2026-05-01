@@ -36,6 +36,9 @@ ranges are inferred from \code{data}.}
 
 \item{prior}{Optional prior specification passed to \code{brms::brm()}.}
 
+\item{prior_profile}{Prior profile used when \code{prior = NULL}. One of
+\code{"legacy"}, \code{"regularized"}, or \code{"adaptive"}.}
+
 \item{family}{Model family passed to \code{brms::brm()}.}
 
 \item{chains}{Number of MCMC chains.}
@@ -56,10 +59,10 @@ ranges are inferred from \code{data}.}
 override defaults from \code{sampling_preset}.}
 
 \item{model_terms}{Polynomial term specification. One of
-\\code{"second_order"} (default; linear + two-way interactions +
-pure quadratic terms), \\code{"first_order"} (linear only),
-\\code{"first_order_twi"} (linear + two-way interactions), or
-\\code{"pure_quadratic"} (linear + pure quadratic terms).}
+\code{"second_order"} (default; linear + two-way interactions +
+pure quadratic terms), \code{"first_order"} (linear only),
+\code{"first_order_twi"} (linear + two-way interactions), or
+\code{"pure_quadratic"} (linear + pure quadratic terms).}
 
 \item{coding_policy}{How to handle missing coding metadata from
 [prepare_brsm_data()]. One of \code{"warn"} (default),
@@ -70,7 +73,7 @@ pure quadratic terms), \\code{"first_order"} (linear only),
 \value{
 An object of class \code{brsm_fit} with elements:
   \code{fit}, \code{formula}, \code{response}, \code{factor_names},
-  \\code{ranges}, \\code{model_terms}, and \\code{call}.
+  \code{ranges}, \code{model_terms}, and \code{call}.
 }
 \description{
 Fits a second-order (quadratic) response surface model using

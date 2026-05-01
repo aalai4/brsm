@@ -104,7 +104,7 @@ plot_optimum_posterior <- function(draws,
       alpha = alpha,
       contour_var = "ndensity"
     ) +
-    viridis::scale_fill_viridis(discrete = TRUE, option = "turbo") +
+    ggplot2::scale_fill_viridis_d(option = "turbo") +
     ggplot2::stat_density_2d(
       color = "black",
       bins = levels,
