@@ -1,0 +1,9 @@
+pandoc: 3.8.3
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  brsm-report: brsm-report.html
+last_built: 2026-05-01T18:08Z
+urls:
+  reference: https://github.com/aalai4/final-project-451-892-a_square/reference
+  article: https://github.com/aalai4/final-project-451-892-a_square/articles

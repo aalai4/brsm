@@ -26,8 +26,7 @@ knitr::opts_chunk$set(
 # Load brsm: use installed package if available, otherwise load from source
 if (requireNamespace("brsm", quietly = TRUE)) {
   library(brsm)
-} else if (file.exists(here::here("DESCRIPTION")) ||
-           file.exists("../DESCRIPTION")) {
+} else if (file.exists("../DESCRIPTION") || file.exists("DESCRIPTION")) {
   # Development mode: load from source tree
   pkgload::load_all(quiet = TRUE)
 } else {

@@ -1,0 +1,85 @@
+url: https://github.com/aalai4/final-project-451-892-a_square
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+
+development:
+  mode: unreleased   # prevents CRAN status check (package not yet on CRAN)
+
+home:
+  title: "brsm: Bayesian Response Surface Methods"
+  description: >
+    Tools for fitting, analyzing, and visualizing Bayesian quadratic response
+    surfaces. Provides full posterior uncertainty quantification for stationary
+    points, ridge analysis, canonical analysis, and response surface prediction.
+
+navbar:
+  structure:
+    left:  [intro, reference, articles]
+    right: [github]
+  components:
+    github:
+      icon: "fab fa-github fa-lg"
+      aria-label: "GitHub repository"
+      href: https://github.com/aalai4/final-project-451-892-a_square
+
+articles:
+  - title: "Getting Started"
+    contents:
+      - brsm-report
+
+reference:
+  - title: "Package Overview"
+    contents:
+      - brsm-package
+
+  - title: "Model Fitting"
+    desc: "Fit Bayesian second-order response surface models."
+    contents:
+      - fit_brsm
+      - specify_brsm_priors
+      - check_brsm_fit
+      - check_brsm_ppc
+
+  - title: "Posterior Analysis"
+    desc: "Extract and analyse the fitted posterior distribution."
+    contents:
+      - as_brsm_draws
+      - stationary_point
+      - hessian_quadratic
+      - gradient_quadratic
+      - canonical_analysis
+      - classify_stationary_point
+      - summarize_brsm_stability
+      - decode_stationary_status
+
+  - title: "Uncertainty Quantification"
+    desc: "Credible regions, ridge analysis, and steepest ascent."
+    contents:
+      - credible_optimum_region
+      - posterior_ridge_analysis
+      - steepest_ascent
+      - posterior_predict_brsm
+
+  - title: "Surface Prediction"
+    desc: "Predict the response surface over factor grids."
+    contents:
+      - predict_surface
+      - surface_grid
+
+  - title: "Design and Data Helpers"
+    desc: "Generate experimental designs and manage coded factor levels."
+    contents:
+      - generate_brsm_design
+      - prepare_brsm_data
+      - decode_brsm_data
+      - get_brsm_coding
+
+  - title: "Workflow and Utilities"
+    desc: "High-level workflow runner and model comparison tools."
+    contents:
+      - brsm_workflow
+      - compare_brsm_models
+      - loftest_brsm
+      - optimize_brsm_multiresponse
