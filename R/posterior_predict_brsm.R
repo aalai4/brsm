@@ -34,6 +34,10 @@
 #'   to resolve sigma when called from \code{brsm_fit} or \code{brmsfit}
 #'   methods. Users should not set this directly.
 #'
+#' @param .sigma_source_draws Internal. Raw posterior draw data frame used
+#'   to resolve sigma when called from \code{brsm_fit} or \code{brmsfit}
+#'   methods. Users should not set this directly.
+#'
 #' @return A prediction object as matrix, long-format data frame, or summary
 #'   data frame depending on options.
 #' @export
