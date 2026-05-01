@@ -1,3 +1,6 @@
-# renv integration disabled — renv/ directory not present in this project.
-# If you want to use renv, run: renv::init()
-# source("renv/activate.R")
+local({
+	renv_activate <- file.path(getwd(), "renv", "activate.R")
+	if (file.exists(renv_activate)) {
+		source(renv_activate)
+	}
+})

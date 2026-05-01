@@ -49,11 +49,7 @@ posterior_predict_brsm <- function(object,
                                    return_matrix = FALSE,
                                    output_chunk_size = NULL,
                                    seed = NULL,
-<<<<<<< HEAD
                                    .sigma_source_draws = NULL) {
-=======
-                                   ...) {
->>>>>>> 0835c3587c4febc07838bcbf42460120539d8356
   UseMethod("posterior_predict_brsm")
 }
 
@@ -71,11 +67,7 @@ posterior_predict_brsm.brsm_fit <- function(object,
                                             return_matrix = FALSE,
                                             output_chunk_size = NULL,
                                             seed = NULL,
-<<<<<<< HEAD
                                             .sigma_source_draws = NULL) {
-=======
-                                            ...) {
->>>>>>> 0835c3587c4febc07838bcbf42460120539d8356
   if (is.null(factor_names)) {
     factor_names <- object$factor_names
   }
@@ -127,11 +119,7 @@ posterior_predict_brsm.brmsfit <- function(object,
                                            return_matrix = FALSE,
                                            output_chunk_size = NULL,
                                            seed = NULL,
-<<<<<<< HEAD
                                            .sigma_source_draws = NULL) {
-=======
-                                           ...) {
->>>>>>> 0835c3587c4febc07838bcbf42460120539d8356
   if (is.null(factor_names)) {
     stop("factor_names must be supplied for brmsfit objects.")
   }

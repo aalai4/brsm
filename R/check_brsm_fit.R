@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-#' @keywords internal
-=======
 #' Extract brmsfit from brsm Wrapper
 #'
 #' Internal helper that accepts either a \code{brsm_fit} object or a
@@ -11,8 +8,6 @@
 #'
 #' @return A \code{brmsfit} object.
 #' @keywords internal
-#' @export
->>>>>>> 0835c3587c4febc07838bcbf42460120539d8356
 .brsm_extract_fit <- function(object, caller = "function") {
   fit <- object
   if (inherits(object, "brsm_fit")) {

@@ -27,7 +27,7 @@
 #' and colorblind-safe. Stationary points are overlaid in red (single-pair, non-sliced
 #' contours only). For 3+ factors, use `pairwise=TRUE` for all pairs or `slice`
 #' for conditional slices.
-#' @keywords internal
+#' @export
 plot_posterior_contours <- function(draws,
                                     factor_names,
                                     ranges,

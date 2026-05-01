@@ -29,15 +29,10 @@ specify_brsm_priors(
 \code{"second_order"}, \code{"first_order"}, \code{"first_order_twi"},
 or \code{"pure_quadratic"}.}
 
-<<<<<<< HEAD
 \item{prior_profile}{Prior profile controlling default scale parameters.
 One of \code{"legacy"} (wide flat priors), \code{"regularized"}
 (moderately shrinking), or \code{"adaptive"} (data-scaled). User-supplied
 scale arguments always override profile defaults.}
-=======
-\item{prior_profile}{Prior profile used to set default scales. One of
-\code{"legacy"}, \code{"regularized"}, or \code{"adaptive"}.}
->>>>>>> 0835c3587c4febc07838bcbf42460120539d8356
 
 \item{coefficient_family}{Prior family for intercept and slope terms.
 One of \code{"normal"} or \code{"student_t"}.}
