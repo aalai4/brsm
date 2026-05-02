@@ -169,3 +169,110 @@ test_that("prior term resolver records unmatched terms for class-b fallback", {
   expect_equal(resolved$matched$quadratic, "I(x1^2)")
   expect_equal(resolved$unmatched$quadratic, "I(x2^2)")
 })
+
+test_that("specify_brsm_priors validates additional flags and autoscale response", {
+  skip_if_not_installed("brms")
+
+  dat_non_numeric <- data.frame(x1 = 1:4, x2 = 2:5, y = letters[1:4])
+  expect_error(
+    specify_brsm_priors(
+      factor_names = c("x1", "x2"),
+      autoscale = TRUE,
+      data = dat_non_numeric,
+      response = "y"
+    ),
+    "response column must be numeric"
+  )
+
+  dat_zero_sd <- data.frame(x1 = 1:4, x2 = 2:5, y = c(1, 1, 1, 1))
+  expect_error(
+    specify_brsm_priors(
+      factor_names = c("x1", "x2"),
+      autoscale = TRUE,
+      data = dat_zero_sd,
+      response = "y"
+    ),
+    "response standard deviation must be finite"
+  )
+
+  expect_error(
+    specify_brsm_priors(
+      factor_names = c("x1", "x2"),
+      include_intercept = NA
+    ),
+    "include_intercept must be TRUE or FALSE"
+  )
+
+  expect_error(
+    specify_brsm_priors(
+      factor_names = c("x1", "x2"),
+      autoscale = NA
+    ),
+    "autoscale must be TRUE or FALSE"
+  )
+})
+
+test_that("adaptive profile shrinks priors and can add global b fallback", {
+  skip_if_not_installed("brms")
+
+  tiny_dat <- data.frame(x1 = 0, x2 = 0, y = 1)
+  p_adapt <- as.data.frame(specify_brsm_priors(
+    factor_names = c("x1", "x2"),
+    model_terms = "second_order",
+    prior_profile = "adaptive",
+    data = tiny_dat,
+    response = "y"
+  ))
+  x1_row <- p_adapt[p_adapt$class == "b" & p_adapt$coef == "x1", , drop = FALSE]
+  expect_equal(x1_row$prior[[1]], "normal(0, 0.8)")
+
+  ns <- asNamespace("brsm")
+  unlockBinding(".brsm_default_prior_b_coefs", ns)
+  old_default <- get(".brsm_default_prior_b_coefs", envir = ns)
+  assign(".brsm_default_prior_b_coefs", function(...) c("x1"), envir = ns)
+  lockBinding(".brsm_default_prior_b_coefs", ns)
+  on.exit({
+    unlockBinding(".brsm_default_prior_b_coefs", ns)
+    assign(".brsm_default_prior_b_coefs", old_default, envir = ns)
+    lockBinding(".brsm_default_prior_b_coefs", ns)
+  }, add = TRUE)
+
+  p_fallback <- as.data.frame(specify_brsm_priors(
+    factor_names = c("x1", "x2"),
+    model_terms = "first_order",
+    data = data.frame(x1 = 1:4, x2 = 2:5, y = 3:6),
+    response = "y"
+  ))
+  expect_true(any(p_fallback$class == "b" & p_fallback$coef == ""))
+})
+
+test_that("prior helper edge branches return expected NA or fallback names", {
+  expect_equal(
+    .brsm_resolve_linear_coef("x 1", c("x.1")),
+    "x.1"
+  )
+
+  expect_true(is.na(.brsm_resolve_interaction_coef("x1", c("x1:x2"))))
+
+  expect_true(is.na(.brsm_resolve_quadratic_coef("I(x9^2)", c("x1", "x2"))))
+
+  out <- .brsm_default_prior_b_coefs(
+    response = "y",
+    linear_terms = character(0),
+    interaction_terms = character(0),
+    quadratic_terms = character(0),
+    include_interactions = FALSE,
+    include_quadratic = FALSE,
+    data = data.frame(y = 1:3)
+  )
+  expect_null(out)
+
+  term_groups <- list(
+    linear = c("x1", "x2"),
+    interaction = c("x1:x2"),
+    quadratic = character(0)
+  )
+  resolved <- .brsm_resolve_b_prior_targets(term_groups, c("x1"))
+  expect_equal(resolved$unmatched$linear, "x2")
+  expect_equal(resolved$unmatched$interaction, "x1:x2")
+})

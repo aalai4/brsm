@@ -190,6 +190,7 @@ check_brsm_fit <- function(object,
     sum(diag_df$ess_tail < ess_tail_min, na.rm = TRUE)
   }
 
+  input_treedepth_limit <- treedepth_limit
   np <- tryCatch(brms::nuts_params(fit), error = function(e) NULL)
   divergences <- NA_integer_
   divergence_rate <- NA_real_
@@ -205,11 +206,13 @@ check_brsm_fit <- function(object,
       divergence_rate <- divergences / nrow(div_rows)
     }
 
-    if (is.null(treedepth_limit)) {
+    if (is.null(input_treedepth_limit)) {
       treedepth_limit <- .brsm_get_max_treedepth(fit)
       if (is.na(treedepth_limit)) {
         treedepth_limit <- 10
       }
+    } else {
+      treedepth_limit <- input_treedepth_limit
     }
 
     td_rows <- np[np$Parameter == "treedepth__", , drop = FALSE]
@@ -226,6 +229,10 @@ check_brsm_fit <- function(object,
       bfmi_min <- min(bfmi_df$bfmi, na.rm = TRUE)
       n_bfmi_below_threshold <- sum(bfmi_df$bfmi < bfmi_threshold, na.rm = TRUE)
     }
+  }
+
+  if (is.null(treedepth_limit)) {
+    treedepth_limit <- NA_real_
   }
 
   rhat_ok <- is.na(n_rhat_bad) || n_rhat_bad == 0

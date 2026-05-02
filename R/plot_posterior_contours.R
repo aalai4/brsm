@@ -141,7 +141,9 @@ plot_posterior_contours <- function(draws,
           "."
         )
       }
-      return(as.numeric(fixed[non_vary]))
+      fixed_vals <- fixed[non_vary]
+      storage.mode(fixed_vals) <- "double"
+      return(fixed_vals)
     }
 
     center_vals <- vapply(non_vary, function(f) {

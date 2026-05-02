@@ -92,3 +92,78 @@ test_that("credible_optimum_region errors on invalid probs", {
     "probs"
   )
 })
+
+test_that("credible_optimum_region dispatches through brsm_fit", {
+  as.data.frame.fake_brmsfit_cor <<- function(x, ...) x$.draws_df
+  registerS3method(
+    "as.data.frame", "fake_brmsfit_cor",
+    as.data.frame.fake_brmsfit_cor,
+    envir = asNamespace("base")
+  )
+
+  draws <- .make_cor_draws(n = 25)
+  fake_fit <- structure(
+    list(
+      fit = structure(list(.draws_df = draws), class = c("fake_brmsfit_cor", "brmsfit")),
+      factor_names = c("x1", "x2"),
+      model_terms = "second_order"
+    ),
+    class = "brsm_fit"
+  )
+
+  out <- suppressWarnings(credible_optimum_region(fake_fit))
+  expect_s3_class(out, "data.frame")
+  expect_equal(rownames(out), c("x1", "x2"))
+})
+
+test_that("credible_optimum_region handles stationary-point edge outputs", {
+  draws <- .make_cor_draws(n = 12)
+  ns <- asNamespace("brsm")
+
+  .replace_stationary <- function(fun) {
+    unlockBinding("stationary_point", ns)
+    old <- get("stationary_point", envir = ns)
+    assign("stationary_point", fun, envir = ns)
+    lockBinding("stationary_point", ns)
+    old
+  }
+
+  .restore_stationary <- function(old) {
+    unlockBinding("stationary_point", ns)
+    assign("stationary_point", old, envir = ns)
+    lockBinding("stationary_point", ns)
+  }
+
+  old <- .replace_stationary(function(...) data.frame(x1 = numeric(0), x2 = numeric(0)))
+  on.exit(.restore_stationary(old), add = TRUE)
+  expect_error(
+    credible_optimum_region(draws, factor_names = c("x1", "x2")),
+    "zero rows"
+  )
+
+  .restore_stationary(old)
+  old <- .replace_stationary(function(...) data.frame(a = 1:3, b = 2:4, c = 3:5))
+  expect_error(
+    credible_optimum_region(draws, factor_names = c("x1", "x2")),
+    "unexpected number of columns"
+  )
+
+  .restore_stationary(old)
+  old <- .replace_stationary(function(...) data.frame(x1 = rep(NA_real_, 4), x2 = rep(NA_real_, 4)))
+  expect_warning(
+    out_all_na <- credible_optimum_region(draws, factor_names = c("x1", "x2")),
+    "All stationary points could not be computed"
+  )
+  expect_true(all(is.na(out_all_na$mean)))
+  expect_true(all(is.na(out_all_na$sd)))
+
+  .restore_stationary(old)
+  old <- .replace_stationary(function(...) data.frame(
+    x1 = c(NA, 0.1, 0.2, NA),
+    x2 = c(0.0, 0.1, NA, 0.3)
+  ))
+  expect_warning(
+    credible_optimum_region(draws, factor_names = c("x1", "x2")),
+    "stationary points could not be computed"
+  )
+})

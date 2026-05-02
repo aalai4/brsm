@@ -465,3 +465,191 @@ test_that("loftest_brsm returns loo_diagnostics for LOO", {
   expect_true("reloo_used" %in% names(result$loo_diagnostics))
   expect_true("auto_moment_match_retry" %in% names(result$loo_diagnostics))
 })
+
+test_that(".brsm_summarize_pareto_k handles empty, unnamed, and non-finite diagnostics", {
+  empty <- brsm:::.brsm_summarize_pareto_k(list(), threshold = 0.7)
+  expect_false(empty$has_high_k)
+  expect_true(is.na(empty$max_pareto_k))
+  expect_length(empty$max_pareto_k_by_model, 0)
+  expect_length(empty$n_above_threshold_by_model, 0)
+
+  est <- list(
+    list(diagnostics = list(pareto_k = c(0.2, 0.8, Inf, NA_real_))),
+    list(diagnostics = list(pareto_k = c(0.1, 0.3))),
+    list(diagnostics = list(pareto_k = c(NA_real_, Inf)))
+  )
+  out <- brsm:::.brsm_summarize_pareto_k(est, threshold = 0.7)
+
+  expect_true(out$has_high_k)
+  expect_equal(out$max_pareto_k_by_model[["model_1"]], 0.8)
+  expect_equal(out$n_above_threshold_by_model[["model_1"]], 1L)
+  expect_true(is.na(out$max_pareto_k_by_model[["model_3"]]))
+})
+
+test_that(".brsm_build_reference_formula handles single and multi-factor extended cases", {
+  f1 <- brsm:::.brsm_build_reference_formula(
+    response = "y",
+    factor_names = "x1",
+    reference_type = "extended"
+  )
+  txt1 <- paste(deparse(f1), collapse = " ")
+  expect_false(grepl(":", txt1))
+  expect_true(grepl("I\\(x1\\^3\\)", txt1))
+
+  f3 <- brsm:::.brsm_build_reference_formula(
+    response = "y",
+    factor_names = c("x1", "x2", "x3"),
+    reference_type = "extended"
+  )
+  txt3 <- paste(deparse(f3), collapse = " ")
+  expect_true(grepl("I\\(x1\\^2\\):x2", txt3))
+  expect_true(grepl("x1:I\\(x2\\^2\\)", txt3))
+  expect_true(grepl("I\\(x1\\^2\\):x3", txt3))
+})
+
+test_that("loftest_brsm mock flow covers auto-fit retry, diagnostics, and PPC branches", {
+  skip_if_not_installed("brms")
+
+  ns_brsm <- asNamespace("brsm")
+  ns_brms <- asNamespace("brms")
+
+  old_extract <- get(".brsm_extract_fit", envir = ns_brsm)
+  old_compare <- get("compare_brsm_models", envir = ns_brsm)
+  old_ppc <- get("check_brsm_ppc", envir = ns_brsm)
+  old_brm <- get("brm", envir = ns_brms)
+
+  trace_env <- new.env(parent = emptyenv())
+  trace_env$compare_calls <- list()
+  trace_env$brm_args <- NULL
+
+  unlockBinding(".brsm_extract_fit", ns_brsm)
+  assign(".brsm_extract_fit", function(m, caller = NULL) {
+    if (inherits(m, "brsm_fit")) m$fit else m
+  }, envir = ns_brsm)
+  lockBinding(".brsm_extract_fit", ns_brsm)
+
+  unlockBinding("compare_brsm_models", ns_brsm)
+  assign("compare_brsm_models", function(models, criterion = c("loo", "waic"), ...) {
+    args <- list(...)
+    trace_env$compare_calls[[length(trace_env$compare_calls) + 1L]] <- args
+    if (length(trace_env$compare_calls) == 1L) {
+      est <- list(
+        baseline = list(diagnostics = list(pareto_k = c(0.9, 0.85))),
+        reference = list(diagnostics = list(pareto_k = c(0.8)))
+      )
+    } else {
+      est <- list(
+        baseline = list(diagnostics = list(pareto_k = c(0.2, 0.3))),
+        reference = list(diagnostics = list(pareto_k = c(0.1)))
+      )
+    }
+
+    list(
+      criterion = match.arg(criterion),
+      estimates = est,
+      comparison = data.frame(model = c("baseline", "reference"), elpd_diff = c(0, -1), se_diff = c(0, 0.1))
+    )
+  }, envir = ns_brsm)
+  lockBinding("compare_brsm_models", ns_brsm)
+
+  unlockBinding("check_brsm_ppc", ns_brsm)
+  assign("check_brsm_ppc", function(object, ndraws, probs, seed, include_plot, ...) {
+    list(summary = data.frame(n_obs = 3, ndraws = ndraws, interval_lower_prob = probs[1], interval_upper_prob = probs[2]))
+  }, envir = ns_brsm)
+  lockBinding("check_brsm_ppc", ns_brsm)
+
+  unlockBinding("brm", ns_brms)
+  assign("brm", function(...) {
+    trace_env$brm_args <- list(...)
+    structure(list(data = trace_env$brm_args$data), class = "brmsfit")
+  }, envir = ns_brms)
+  lockBinding("brm", ns_brms)
+
+  on.exit({
+    unlockBinding(".brsm_extract_fit", ns_brsm)
+    assign(".brsm_extract_fit", old_extract, envir = ns_brsm)
+    lockBinding(".brsm_extract_fit", ns_brsm)
+
+    unlockBinding("compare_brsm_models", ns_brsm)
+    assign("compare_brsm_models", old_compare, envir = ns_brsm)
+    lockBinding("compare_brsm_models", ns_brsm)
+
+    unlockBinding("check_brsm_ppc", ns_brsm)
+    assign("check_brsm_ppc", old_ppc, envir = ns_brsm)
+    lockBinding("check_brsm_ppc", ns_brsm)
+
+    unlockBinding("brm", ns_brms)
+    assign("brm", old_brm, envir = ns_brms)
+    lockBinding("brm", ns_brms)
+  }, add = TRUE)
+
+  baseline <- structure(
+    list(
+      response = "y",
+      factor_names = c("x1", "x2"),
+      fit = list(data = data.frame(y = c(1, 2, 3), x1 = c(-1, 0, 1), x2 = c(-1, 0, 1)), family = stats::gaussian()),
+      sampling = list(chains = 2, iter = 40, warmup = 20, backend = "cmdstanr", control = list(adapt_delta = 0.85))
+    ),
+    class = "brsm_fit"
+  )
+
+  out <- loftest_brsm(
+    object = baseline,
+    reference_model = NULL,
+    reference_type = "extended",
+    criterion = "loo",
+    loo_moment_match = FALSE,
+    loo_auto_moment_match = TRUE,
+    loo_k_threshold = 0.7,
+    include_ppc = TRUE,
+    ppc_ndraws = 5,
+    ppc_probs = c(0.1, 0.9),
+    seed = 99
+  )
+
+  expect_true(isTRUE(out$reference_fitted))
+  expect_true(isTRUE(out$loo_diagnostics$auto_moment_match_retry))
+  expect_true(isTRUE(out$loo_diagnostics$moment_match_used))
+  expect_true("ppc" %in% names(out))
+  expect_equal(nrow(out$ppc$summaries), 2)
+  expect_equal(length(trace_env$compare_calls), 2)
+  expect_true(isTRUE(trace_env$compare_calls[[2]]$moment_match))
+  expect_identical(trace_env$brm_args$backend, "cmdstanr")
+})
+
+test_that("loftest_brsm auto-fit input validation branches error cleanly", {
+  skip_if_not_installed("brms")
+
+  ns_brsm <- asNamespace("brsm")
+  old_extract <- get(".brsm_extract_fit", envir = ns_brsm)
+  unlockBinding(".brsm_extract_fit", ns_brsm)
+  assign(".brsm_extract_fit", function(m, caller = NULL) m, envir = ns_brsm)
+  lockBinding(".brsm_extract_fit", ns_brsm)
+  on.exit({
+    unlockBinding(".brsm_extract_fit", ns_brsm)
+    assign(".brsm_extract_fit", old_extract, envir = ns_brsm)
+    lockBinding(".brsm_extract_fit", ns_brsm)
+  }, add = TRUE)
+
+  fake_fit <- structure(list(), class = "brmsfit")
+
+  expect_error(
+    loftest_brsm(object = fake_fit, reference_model = NULL),
+    "automatic reference fitting requires data, response, and factor_names"
+  )
+  expect_error(
+    loftest_brsm(object = fake_fit, reference_model = NULL, data = 1, response = "y", factor_names = c("x1", "x2")),
+    "data must be a data.frame"
+  )
+  expect_error(
+    loftest_brsm(
+      object = fake_fit,
+      reference_model = NULL,
+      data = data.frame(y = 1:3, x1 = 1:3, x2 = 3:1),
+      response = "y",
+      factor_names = c("x1", "x2"),
+      control = 1
+    ),
+    "control must be NULL or a named list"
+  )
+})
