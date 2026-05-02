@@ -220,9 +220,8 @@ The package architecture prioritizes:
 
 - **Backward Compatibility**: Existing code continues to work
 
-- **Flexibility**: Extensible through S3 methods
-
-- **Documentation**: Comprehensive examples and vignettes
+- **Flexibility**: Extensible through S3 methods - **Documentation**:
+  Comprehensive examples and vignettes
 
 ## References
 

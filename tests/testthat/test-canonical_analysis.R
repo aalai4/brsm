@@ -209,3 +209,118 @@ test_that("canonical_analysis works via brsm_fit dispatch", {
   expect_equal(nrow(ca$eigenvectors), 4)
   expect_equal(nrow(ca$scores), 2)
 })
+
+.replace_brsm_ns_binding <- function(name, new_fn) {
+  ns <- asNamespace("brsm")
+  old <- get(name, envir = ns)
+  unlockBinding(name, ns)
+  assign(name, new_fn, envir = ns)
+  lockBinding(name, ns)
+  old
+}
+
+.restore_brsm_ns_binding <- function(name, old_fn) {
+  ns <- asNamespace("brsm")
+  unlockBinding(name, ns)
+  assign(name, old_fn, envir = ns)
+  lockBinding(name, ns)
+}
+
+test_that("canonical_analysis.brsm_fit dispatches with object factor_names", {
+  fake_draws <- .create_ca_draws(n = 4)
+  fake_fit <- structure(list(factor_names = c("x1", "x2")), class = "brsm_fit")
+
+  old_as <- .replace_brsm_ns_binding("as_brsm_draws", function(object, ...) fake_draws)
+  old_default <- .replace_brsm_ns_binding("canonical_analysis.default", function(object, factor_names = NULL, include_scores = TRUE, kappa_thresh = 1e10, probs = c(0.025, 0.5, 0.975), summary = TRUE) {
+    list(
+      factor_names = factor_names,
+      include_scores = include_scores,
+      kappa_thresh = kappa_thresh,
+      probs = probs,
+      summary = summary,
+      n_draws = nrow(object)
+    )
+  })
+  on.exit({
+    .restore_brsm_ns_binding("canonical_analysis.default", old_default)
+    .restore_brsm_ns_binding("as_brsm_draws", old_as)
+  }, add = TRUE)
+
+  out <- brsm:::canonical_analysis.brsm_fit(
+    fake_fit,
+    include_scores = FALSE,
+    kappa_thresh = 123,
+    probs = c(0.1, 0.9),
+    summary = FALSE
+  )
+
+  expect_identical(out$factor_names, c("x1", "x2"))
+  expect_false(out$include_scores)
+  expect_identical(out$kappa_thresh, 123)
+  expect_identical(out$probs, c(0.1, 0.9))
+  expect_false(out$summary)
+  expect_identical(out$n_draws, 4L)
+})
+
+test_that("canonical_analysis.brmsfit validates and dispatches with supplied factors", {
+  fake_fit <- structure(list(), class = "brmsfit")
+  expect_error(
+    brsm:::canonical_analysis.brmsfit(fake_fit),
+    "factor_names must be supplied"
+  )
+
+  fake_draws <- .create_ca_draws(n = 3)
+  old_as <- .replace_brsm_ns_binding("as_brsm_draws", function(object, factor_names = NULL, ...) {
+    attr(fake_draws, "seen_factor_names") <- factor_names
+    fake_draws
+  })
+  old_default <- .replace_brsm_ns_binding("canonical_analysis.default", function(object, factor_names = NULL, ...) {
+    list(n_draws = nrow(object), factor_names = factor_names)
+  })
+  on.exit({
+    .restore_brsm_ns_binding("canonical_analysis.default", old_default)
+    .restore_brsm_ns_binding("as_brsm_draws", old_as)
+  }, add = TRUE)
+
+  out <- brsm:::canonical_analysis.brmsfit(fake_fit, factor_names = c("x1", "x2"))
+  expect_identical(out$n_draws, 3L)
+  expect_identical(out$factor_names, c("x1", "x2"))
+})
+
+test_that("canonical_analysis handles decomposition failures with NA summaries", {
+  draws <- .create_ca_draws(n = 5)
+
+  old_h <- .replace_brsm_ns_binding(".brsm_hessian_array", function(draws, factor_names) {
+    array(NA_real_, dim = c(nrow(draws), length(factor_names), length(factor_names)))
+  })
+  old_sp <- .replace_brsm_ns_binding("stationary_points_batch_details", function(h_array, b_matrix, kappa_thresh) {
+    n <- dim(h_array)[1]
+    p <- dim(h_array)[2]
+    list(
+      x_star = matrix(0, nrow = n, ncol = p),
+      status_code = rep(1L, n),
+      kappa_proxy = rep(Inf, n)
+    )
+  })
+  on.exit({
+    .restore_brsm_ns_binding("stationary_points_batch_details", old_sp)
+    .restore_brsm_ns_binding(".brsm_hessian_array", old_h)
+  }, add = TRUE)
+
+  out <- expect_warning(
+    expect_warning(
+      brsm:::canonical_analysis.default(
+        draws,
+        factor_names = c("x1", "x2"),
+        include_scores = TRUE,
+        summary = TRUE
+      ),
+      "draw\\(s\\) could not be decomposed"
+    ),
+    "draw\\(s\\) produced NA canonical scores"
+  )
+
+  expect_true(all(is.na(out$eigenvalues$mean)))
+  expect_true(all(is.na(out$eigenvectors$mean)))
+  expect_true(all(is.na(out$scores$mean)))
+})

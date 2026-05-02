@@ -118,3 +118,145 @@ test_that("stationary_point full diagnostics include status breakdown by thresho
   expect_equal(status_df$pct_excluded, c(2 / 3, 2 / 3, 1 / 3))
   expect_equal(diag_info$stability_flag, "unstable")
 })
+
+test_that("stationary_point validates inputs and brsm_fit dispatch", {
+  draws <- data.frame(
+    b_x1 = c(1, 1, 1),
+    b_x2 = c(1, 1, 1),
+    `b_I(x1^2)` = c(-1, -1, -1),
+    `b_I(x2^2)` = c(-1, -1, -1),
+    `b_x1:x2` = c(0, 0, 0)
+  )
+
+  expect_error(
+    stationary_point(draws),
+    "factor_names must be supplied"
+  )
+  expect_error(
+    stationary_point(draws, factor_names = c("x1", "x2"), kappa_thresh = 0),
+    "kappa_thresh must be a finite positive"
+  )
+  expect_error(
+    stationary_point(draws, factor_names = c("x1", "x2"), auto_guidance = NA),
+    "auto_guidance must be TRUE or FALSE"
+  )
+  expect_error(
+    stationary_point(
+      draws,
+      factor_names = c("x1", "x2"),
+      sensitivity_thresholds = numeric(0)
+    ),
+    "sensitivity_thresholds must be a non-empty"
+  )
+
+  missing_linear <- draws
+  missing_linear$b_x2 <- NULL
+  expect_error(
+    stationary_point(missing_linear, factor_names = c("x1", "x2")),
+    "missing linear columns"
+  )
+
+  non_numeric_linear <- draws
+  non_numeric_linear$b_x1 <- as.character(non_numeric_linear$b_x1)
+  expect_error(
+    stationary_point(non_numeric_linear, factor_names = c("x1", "x2")),
+    "numeric columns for linear terms"
+  )
+
+  as.data.frame.fake_brmsfit_sp <<- function(x, ...) x$.draws_df
+  registerS3method(
+    "as.data.frame", "fake_brmsfit_sp",
+    as.data.frame.fake_brmsfit_sp,
+    envir = asNamespace("base")
+  )
+
+  fake_fit <- structure(
+    list(.draws_df = data.frame(
+      b_Intercept = 1:3,
+      b_x1 = c(1, 1, 1),
+      b_x2 = c(1, 1, 1),
+      `b_I(x1^2)` = c(-1, -1, -1),
+      `b_I(x2^2)` = c(-1, -1, -1),
+      `b_x1:x2` = c(0, 0, 0),
+      check.names = FALSE
+    )),
+    class = c("fake_brmsfit_sp", "brmsfit")
+  )
+  fit_obj <- structure(
+    list(fit = fake_fit, factor_names = c("x1", "x2"), model_terms = "second_order"),
+    class = "brsm_fit"
+  )
+
+  out <- stationary_point(fit_obj)
+  expect_s3_class(out, "data.frame")
+  expect_equal(names(out), c("x1", "x2"))
+})
+
+test_that("stationary_point guidance warnings cover moderate/high and stability flags", {
+  # Moderate exclusion path: one excluded out of six (~16.7%).
+  draws_mod <- data.frame(
+    b_x1 = rep(1, 6),
+    b_x2 = rep(1, 6),
+    `b_I(x1^2)` = c(-1, -1, -1, -1, -1, 0),
+    `b_I(x2^2)` = c(-1, -1, -1, -1, -1, -1),
+    `b_x1:x2` = rep(0, 6)
+  )
+  mod_out <- suppressWarnings(stationary_point(
+    draws_mod,
+    factor_names = c("x1", "x2"),
+    diagnostics = "basic",
+    auto_guidance = TRUE
+  ))
+  expect_s3_class(mod_out, "data.frame")
+
+  # Full diagnostics with one near-threshold draw produces moderate sensitivity.
+  draws_stable <- data.frame(
+    b_x1 = rep(1, 10),
+    b_x2 = rep(1, 10),
+    `b_I(x1^2)` = c(rep(-1, 9), -1),
+    `b_I(x2^2)` = c(rep(-1, 9), -1e-11),
+    `b_x1:x2` = rep(0, 10)
+  )
+  diag_mod <- suppressWarnings(stationary_point(
+    draws_stable,
+    factor_names = c("x1", "x2"),
+    diagnostics = "full",
+    auto_guidance = FALSE,
+    sensitivity_thresholds = c(1e8, 1e12)
+  ))
+  expect_equal(attr(diag_mod, "diagnostics")$stability_flag, "moderately_sensitive")
+
+  # Existing unstable geometry should trigger low-information warning in auto guidance.
+  draws_unstable <- data.frame(
+    b_x1 = c(1, 1, 1),
+    b_x2 = c(1, 1, 1),
+    `b_I(x1^2)` = c(-1, -1, 0),
+    `b_I(x2^2)` = c(-1, -1e-12, -1),
+    `b_x1:x2` = c(0, 0, 0)
+  )
+  unstable_out <- suppressWarnings(stationary_point(
+    draws_unstable,
+    factor_names = c("x1", "x2"),
+    diagnostics = "full",
+    auto_guidance = TRUE,
+    sensitivity_thresholds = c(1e8, 1e12)
+  ))
+  expect_identical(attr(unstable_out, "diagnostics")$stability_flag, "unstable")
+
+  # Stable sensitivity branch: no exclusions across thresholds.
+  draws_stable_flag <- data.frame(
+    b_x1 = rep(1, 8),
+    b_x2 = rep(1, 8),
+    `b_I(x1^2)` = rep(-1, 8),
+    `b_I(x2^2)` = rep(-1, 8),
+    `b_x1:x2` = rep(0, 8)
+  )
+  stable_out <- suppressWarnings(stationary_point(
+    draws_stable_flag,
+    factor_names = c("x1", "x2"),
+    diagnostics = "full",
+    auto_guidance = FALSE,
+    sensitivity_thresholds = c(1e8, 1e12)
+  ))
+  expect_identical(attr(stable_out, "diagnostics")$stability_flag, "stable")
+})

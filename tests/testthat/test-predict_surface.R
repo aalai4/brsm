@@ -128,6 +128,11 @@ test_that("predict_surface validates new draw controls", {
   )
 
   expect_error(
+    predict_surface(draws, c("x1", "x2"), grid, draw_subset = numeric(0)),
+    "one or more finite indices"
+  )
+
+  expect_error(
     predict_surface(draws, c("x1", "x2"), grid, max_draws = 0),
     "max_draws"
   )
@@ -136,4 +141,102 @@ test_that("predict_surface validates new draw controls", {
     predict_surface(draws, c("x1", "x2"), grid, output_chunk_size = 0),
     "output_chunk_size"
   )
+})
+
+test_that("predict_surface covers dispatch and validation branches", {
+  full_draws <- .create_predict_draws(n = 30)
+  grid <- .create_predict_grid()
+
+  as.data.frame.fake_brmsfit_ps <<- function(x, ...) x$.draws_df
+  registerS3method(
+    "as.data.frame", "fake_brmsfit_ps",
+    as.data.frame.fake_brmsfit_ps,
+    envir = asNamespace("base")
+  )
+
+  fake_brmsfit <- structure(
+    list(.draws_df = full_draws),
+    class = c("fake_brmsfit_ps", "brmsfit")
+  )
+
+  fake_brsm_fit <- structure(
+    list(
+      fit = fake_brmsfit,
+      factor_names = c("x1", "x2"),
+      model_terms = "second_order"
+    ),
+    class = "brsm_fit"
+  )
+
+  out_fit <- predict_surface(fake_brsm_fit, newdata = grid, summary = TRUE)
+  out_brms <- predict_surface(fake_brmsfit,
+    factor_names = c("x1", "x2"),
+    newdata = grid,
+    summary = TRUE
+  )
+  expect_equal(nrow(out_fit), nrow(grid))
+  expect_equal(nrow(out_brms), nrow(grid))
+
+  expect_error(
+    predict_surface(full_draws, c("x1", "x2"), as.matrix(grid)),
+    "newdata must be a data.frame"
+  )
+  expect_error(
+    predict_surface(full_draws, c("x1", "x2"), grid[0, , drop = FALSE]),
+    "newdata must contain at least one row"
+  )
+  expect_error(
+    predict_surface(full_draws, c("x1", "x2"), grid, draw_subset = "bad"),
+    "draw_subset must be NULL, a logical vector, or numeric indices"
+  )
+
+  none_selected <- rep(FALSE, nrow(full_draws))
+  expect_error(
+    predict_surface(full_draws, c("x1", "x2"), grid, draw_subset = none_selected),
+    "No draws remain after applying draw_subset/max_draws"
+  )
+
+  draws_no_intercept <- full_draws
+  draws_no_intercept$b_Intercept <- NULL
+  expect_error(
+    predict_surface(draws_no_intercept, c("x1", "x2"), grid),
+    "draws must contain 'b_Intercept'"
+  )
+
+  grid_char <- grid
+  grid_char$x1 <- as.character(grid_char$x1)
+  expect_warning(
+    predict_surface(full_draws, c("x1", "x2"), grid_char, summary = FALSE),
+    "coerced to numeric"
+  )
+
+  expect_warning(
+    predict_surface(full_draws, c("x1", "x2"), grid, summary = TRUE, return_matrix = TRUE),
+    "return_matrix is ignored when summary = TRUE"
+  )
+})
+
+test_that("predict_surface enters chunked long-output path", {
+  set.seed(903)
+  n_draws <- 2300
+  n_points <- 2301
+
+  draws <- data.frame(
+    b_Intercept = rnorm(n_draws),
+    b_x1 = rnorm(n_draws),
+    check.names = FALSE
+  )
+  grid <- data.frame(x1 = seq(-1, 1, length.out = n_points))
+
+  out <- predict_surface(
+    draws = draws,
+    factor_names = c("x1"),
+    newdata = grid,
+    summary = FALSE,
+    output_chunk_size = 128
+  )
+
+  expect_s3_class(out, "data.frame")
+  expect_equal(nrow(out), n_draws * n_points)
+  expect_true(all(c("draw", "point_id", "x1", "estimate") %in% names(out)))
 })

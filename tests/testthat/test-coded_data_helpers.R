@@ -303,3 +303,77 @@ test_that("decode_brsm_data with missing factor columns errors gracefully", {
 
   expect_error(decode_brsm_data(pred_data, prepared))
 })
+
+test_that("coded_data_helpers cover remaining validation and metadata branches", {
+  expect_error(
+    prepare_brsm_data(1, factor_names = c("x1", "x2")),
+    "data must be a data.frame"
+  )
+
+  df <- data.frame(x1 = c(1, 2, 3), y = c(2, 3, 4))
+  expect_error(
+    prepare_brsm_data(df, factor_names = c("x1", "x2")),
+    "Missing factor columns"
+  )
+
+  bad_num <- data.frame(x1 = c("a", "b"), x2 = c(1, 2), y = c(1, 2))
+  expect_error(
+    prepare_brsm_data(bad_num, factor_names = c("x1", "x2")),
+    "All factor columns must be numeric"
+  )
+
+  all_na <- data.frame(x1 = c(NA_real_, NA_real_), x2 = c(1, 2), y = c(1, 2))
+  expect_error(
+    prepare_brsm_data(all_na, factor_names = c("x1", "x2")),
+    "contains only NA values"
+  )
+
+  fake_fit <- structure(
+    list(coding = list(method = "zscore", factors = list(x1 = list(center = 0, scale = 1)))),
+    class = "brsm_fit"
+  )
+  coding_fit <- get_brsm_coding(fake_fit)
+  expect_equal(coding_fit$method, "zscore")
+
+  bad_coding_attr <- structure(
+    data.frame(x1 = 1:2),
+    brsm_coding = list(method = "zscore")
+  )
+  expect_error(
+    get_brsm_coding(bad_coding_attr),
+    "Invalid brsm coding metadata format"
+  )
+
+  expect_error(
+    decode_brsm_data(1, coding = list(factors = list(x1 = list(center = 0, scale = 1)))),
+    "data must be a data.frame"
+  )
+
+  plain <- data.frame(x1 = c(0, 1), x2 = c(0, 1))
+  expect_error(
+    decode_brsm_data(plain),
+    "coding is NULL and no 'brsm_coding' attribute found"
+  )
+
+  expect_error(
+    decode_brsm_data(plain, coding = list(method = "zscore")),
+    "coding must be a list with a 'factors' list entry"
+  )
+
+  coding <- list(
+    method = "zscore",
+    factors = list(
+      x1 = list(center = 1, scale = 2),
+      x2 = list(center = 2, scale = 3)
+    )
+  )
+  expect_error(
+    decode_brsm_data(plain, coding = coding, factor_names = c("x1", "x3")),
+    "No coding metadata found for factors"
+  )
+
+  expect_error(
+    decode_brsm_data(plain[, "x1", drop = FALSE], coding = coding, factor_names = c("x1", "x2")),
+    "data is missing coded factor column"
+  )
+})
