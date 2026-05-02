@@ -64,4 +64,9 @@ Useful links:
 \author{
 \strong{Maintainer}: Arian Alai \email{aalai4@nebraska.edu}
 
+Authors:
+\itemize{
+  \item Aftab A Sorwar \email{aftabsorwar15@gmail.com}
+}
+
 }

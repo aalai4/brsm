@@ -77,4 +77,3 @@ and colorblind-safe. Stationary points are overlaid in red (single-pair, non-sli
 contours only). For 3+ factors, use `pairwise=TRUE` for all pairs or `slice`
 for conditional slices.
 }
-\keyword{internal}

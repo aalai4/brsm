@@ -7,12 +7,17 @@ Authors@R: c(
       "Arian", "Alai",
       email = "aalai4@nebraska.edu",
       role = c("aut", "cre")
+    ),
+    person(
+      "Aftab A", "Sorwar",
+      email = "aftabsorwar15@gmail.com",
+      role = c("aut")
     )
   )
-Description: Tools for analyzing posterior distributions of quadratic response surfaces
-    from Bayesian model fits. Provides functions for computing stationary points,
-    ridge analysis, steepest ascent paths, and visualization of response surfaces
-    with full posterior uncertainty quantification.
+Description: Tools for analyzing posterior distributions of quadratic response
+    surfaces from Bayesian model fits. Provides functions for computing stationary
+    points, ridge analysis, steepest ascent paths, and visualization of response
+    surfaces with full posterior uncertainty quantification.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -20,6 +25,7 @@ RoxygenNote: 7.3.3
 Imports:
     stats,
     ggplot2,
+    viridis,
     Rcpp
 LinkingTo:
     Rcpp
@@ -31,5 +37,5 @@ Suggests:
     rmarkdown
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-URL: https://github.com/aalai4/final-project-451-892-a_square
-BugReports: https://github.com/aalai4/final-project-451-892-a_square/issues
+URL: https://aalai4.github.io/brsm/, https://github.com/aalai4/brsm
+BugReports: https://github.com/aalai4/brsm/issues
