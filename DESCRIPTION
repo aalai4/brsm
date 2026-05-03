@@ -34,7 +34,8 @@ Suggests:
     testthat (>= 3.0.0),
     rsm,
     knitr,
-    rmarkdown
+    rmarkdown,
+    loo
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://aalai4.github.io/brsm/, https://github.com/aalai4/brsm
