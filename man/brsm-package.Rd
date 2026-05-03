@@ -56,8 +56,9 @@ Response Surfaces.} Wiley.
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/aalai4/final-project-451-892-a_square}
-  \item Report bugs at \url{https://github.com/aalai4/final-project-451-892-a_square/issues}
+  \item \url{https://aalai4.github.io/brsm/}
+  \item \url{https://github.com/aalai4/brsm}
+  \item Report bugs at \url{https://github.com/aalai4/brsm/issues}
 }
 
 }
