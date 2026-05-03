@@ -25,7 +25,6 @@ RoxygenNote: 7.3.3
 Imports:
     stats,
     ggplot2,
-    viridis,
     Rcpp
 LinkingTo:
     Rcpp
@@ -34,7 +33,9 @@ Suggests:
     testthat (>= 3.0.0),
     rsm,
     knitr,
-    rmarkdown
+  rmarkdown,
+  loo,
+  pkgload
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://aalai4.github.io/brsm/, https://github.com/aalai4/brsm

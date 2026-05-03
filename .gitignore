@@ -8,3 +8,16 @@
 .positai
 /doc/
 /Meta/
+
+# Local build artifacts and temporary files
+/src/*.o
+/src/*.obj
+/src/*.dll
+/src/*.so
+/src/*.gcda
+/src/*.gcno
+/git-editor.bat
+/git-editor.ps1
+/coverage.rds
+/0)
+/0)))

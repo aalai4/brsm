@@ -13,8 +13,8 @@
 #' @return A ggplot2 object.
 #'
 #' @details
-#' Density fills use the viridis "turbo" palette, which is perceptually uniform
-#' and colorblind-safe. Density contour lines are drawn in black for contrast.
+#' Density fills use a high-contrast sequential palette.
+#' Density contour lines are drawn in black for contrast.
 #' The posterior mean optimum is marked with a red cross symbol. This plot is only
 #' available for optimization_geometry mode (when quadratic terms are present).
 #' @keywords internal
@@ -104,7 +104,7 @@ plot_optimum_posterior <- function(draws,
       alpha = alpha,
       contour_var = "ndensity"
     ) +
-    ggplot2::scale_fill_viridis_d(option = "turbo") +
+    ggplot2::scale_fill_brewer(palette = "YlOrRd", direction = 1) +
     ggplot2::stat_density_2d(
       color = "black",
       bins = levels,

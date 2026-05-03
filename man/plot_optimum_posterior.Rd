@@ -42,8 +42,8 @@ A ggplot2 object.
 Plot Posterior Distribution of the Optimum
 }
 \details{
-Density fills use the viridis "turbo" palette, which is perceptually uniform
-and colorblind-safe. Density contour lines are drawn in black for contrast.
+Density fills use a high-contrast sequential palette.
+Density contour lines are drawn in black for contrast.
 The posterior mean optimum is marked with a red cross symbol. This plot is only
 available for optimization_geometry mode (when quadratic terms are present).
 }
