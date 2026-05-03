@@ -72,8 +72,8 @@ A ggplot2 object.
 Plot Posterior Contours
 }
 \details{
-Contour fills use the viridis "turbo" palette, which is perceptually uniform
-and colorblind-safe. Stationary points are overlaid in red (single-pair, non-sliced
+Contour fills use a high-contrast sequential palette.
+Stationary points are overlaid in red (single-pair, non-sliced
 contours only). For 3+ factors, use `pairwise=TRUE` for all pairs or `slice`
 for conditional slices.
 }

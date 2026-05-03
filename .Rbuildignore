@@ -18,3 +18,25 @@
 ^\.positai$
 ^doc$
 ^Meta$
+^\.venv$
+^\.github$
+^docs$
+^coverage\.rds$
+^git-editor\.bat$
+^git-editor\.ps1$
+^0\)$
+^0\)\)\)$
+^2\.R$
+^3\.R$
+^4\.R$
+^5\.R$
+^Bayesian_RSM_Presentation\.pdf$
+^Bayesian_RSM_Presentation\.xml$
+^Project Description\.xml$
+^STAT950_Arian\.xml$
+^STAT950_Presentation Instructions\.xml$
+^Report\.qmd$
+^sim_results_cfg_1_18\.csv$
+^sim_results_freq_cfg_1_18\.csv$
+^test-brsm\.R$
+^_pkgdown\.yml$

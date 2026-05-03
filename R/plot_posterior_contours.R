@@ -23,8 +23,8 @@
 #' @return A ggplot2 object.
 #'
 #' @details
-#' Contour fills use the viridis "turbo" palette, which is perceptually uniform
-#' and colorblind-safe. Stationary points are overlaid in red (single-pair, non-sliced
+#' Contour fills use a high-contrast sequential palette.
+#' Stationary points are overlaid in red (single-pair, non-sliced
 #' contours only). For 3+ factors, use `pairwise=TRUE` for all pairs or `slice`
 #' for conditional slices.
 #' @export
@@ -325,7 +325,7 @@ plot_posterior_contours <- function(draws,
       ggplot2::aes(z = .data$z),
       bins = bins
     ) +
-    ggplot2::scale_fill_viridis_d(option = "turbo") +
+    ggplot2::scale_fill_brewer(palette = "YlOrRd", direction = 1) +
     ggplot2::labs(
       x = "factor 1",
       y = "factor 2",
