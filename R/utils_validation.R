@@ -164,6 +164,101 @@
   invisible(coding_policy)
 }
 
+.brsm_model_fixed_effect_count <- function(factor_names,
+                                           model_terms = c(
+                                             "second_order",
+                                             "first_order",
+                                             "first_order_twi",
+                                             "pure_quadratic"
+                                           )) {
+  factor_names <- .brsm_validate_factor_names(factor_names)
+  model_terms <- match.arg(model_terms)
+
+  p <- length(factor_names)
+  p_twi <- if (p > 1L) choose(p, 2L) else 0L
+
+  switch(
+    model_terms,
+    first_order = 1L + p,
+    first_order_twi = 1L + p + p_twi,
+    pure_quadratic = 1L + 2L * p,
+    second_order = 1L + 2L * p + p_twi
+  )
+}
+
+.brsm_low_information_message <- function(n_obs, n_coef, threshold = 10) {
+  ratio <- if (is.finite(n_obs) && is.finite(n_coef) && n_coef > 0) {
+    n_obs / n_coef
+  } else {
+    NA_real_
+  }
+
+  if (!is.finite(ratio)) {
+    return(NULL)
+  }
+
+  if (ratio >= threshold) {
+    return(NULL)
+  }
+
+  sprintf(
+    paste0(
+      "Low data-to-complexity ratio: %d observations for %d fixed effects ",
+      "(%.1f per coefficient). Consider prior_profile = 'regularized' or ",
+      "'adaptive' for stronger regularization."
+    ),
+    as.integer(n_obs),
+    as.integer(n_coef),
+    ratio
+  )
+}
+
+.brsm_fixed_effect_uncertainty <- function(fit, conf_level = 0.95) {
+  draws <- tryCatch(as.data.frame(fit), error = function(e) NULL)
+  if (is.null(draws) || !is.data.frame(draws)) {
+    return(NULL)
+  }
+
+  coef_cols <- grep("^b_", names(draws), value = TRUE)
+  if (length(coef_cols) == 0L) {
+    return(NULL)
+  }
+
+  alpha <- (1 - conf_level) / 2
+  probs <- c(alpha, 1 - alpha)
+
+  summary <- lapply(coef_cols, function(coef_name) {
+    values <- draws[[coef_name]]
+    values <- values[is.finite(values)]
+    if (length(values) == 0L) {
+      return(NULL)
+    }
+
+    ci <- stats::quantile(values, probs = probs, na.rm = TRUE, names = FALSE)
+    data.frame(
+      term = sub("^b_", "", coef_name),
+      pd = max(mean(values > 0), mean(values < 0)),
+      ci_low = ci[[1L]],
+      ci_high = ci[[2L]],
+      overlap_zero = ci[[1L]] <= 0 && ci[[2L]] >= 0,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  summary <- Filter(Negate(is.null), summary)
+  if (length(summary) == 0L) {
+    return(NULL)
+  }
+
+  summary <- do.call(rbind, summary)
+  if (is.null(summary) || nrow(summary) == 0L) {
+    return(NULL)
+  }
+
+  rownames(summary) <- NULL
+  summary
+}
+
 .brsm_check_columns <- function(required, obj, message) {
   if (!all(required %in% names(obj))) {
     stop(message)

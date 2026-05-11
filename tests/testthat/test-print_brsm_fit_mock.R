@@ -157,6 +157,36 @@ test_that("check_brsm_fit errors on non-model objects or missing brms", {
   expect_error(brsm::check_brsm_fit(data.frame(x = 1)))
 })
 
+test_that("low-information helpers compute complexity and uncertainty summaries", {
+  expect_equal(
+    brsm:::.brsm_model_fixed_effect_count(c("x1", "x2"), "first_order"),
+    3L
+  )
+  expect_equal(
+    brsm:::.brsm_model_fixed_effect_count(c("x1", "x2"), "second_order"),
+    6L
+  )
+
+  expect_null(brsm:::.brsm_low_information_message(60, 6, threshold = 10))
+  expect_match(
+    brsm:::.brsm_low_information_message(18, 6, threshold = 10),
+    "regularized"
+  )
+
+  fake <- .create_fake_brmsfit(
+    fixed = data.frame(),
+    draws = data.frame(
+      b_x1 = c(1, 2, 3, 4),
+      b_x2 = c(-1, -2, -3, -4),
+      check.names = FALSE
+    )
+  )
+  uncertainty <- brsm:::.brsm_fixed_effect_uncertainty(fake)
+  expect_equal(uncertainty$term, c("x1", "x2"))
+  expect_equal(uncertainty$pd, c(1, 1))
+  expect_false(any(uncertainty$overlap_zero))
+})
+
 test_that("internal check_brsm_fit helpers handle fake brmsfit objects", {
   fixed <- data.frame(
     Estimate = 1,

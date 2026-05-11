@@ -154,6 +154,15 @@ test_that("print.brsm_fit displays convergence diagnostics (Rhat)", {
   expect_true(any(grepl("Rhat", result, fixed = TRUE)))
 })
 
+test_that("print.brsm_fit reports low data-to-complexity guidance", {
+  skip_if_no_brms_tests()
+
+  result <- capture.output(print(.psm_fit("plain", seed = 410)))
+  expect_true(any(grepl("Low data-to-complexity ratio", result, fixed = TRUE)))
+  expect_true(any(grepl("regularized", result, fixed = TRUE)))
+  expect_true(any(grepl("adaptive", result, fixed = TRUE)))
+})
+
 test_that("print.brsm_fit produces readable output without errors", {
   skip_if_no_brms_tests()
 
@@ -227,6 +236,16 @@ test_that("print.summary.brsm_fit includes coefficient table", {
   summary_obj <- summary(.psm_fit("plain", seed = 414))
   result <- capture.output(print(summary_obj))
   expect_true(any(grepl("Coefficient Summary", result, fixed = TRUE)))
+})
+
+test_that("print.summary.brsm_fit reports coefficient uncertainty first", {
+  skip_if_no_brms_tests()
+
+  summary_obj <- summary(.psm_fit("plain", seed = 414))
+  result <- capture.output(print(summary_obj))
+  expect_true(any(grepl("Coefficient Uncertainty Check", result, fixed = TRUE)))
+  expect_true(any(grepl("Median probability of direction", result, fixed = TRUE)))
+  expect_true(any(grepl("intervals overlapping 0", result, fixed = TRUE)))
 })
 
 test_that("S3 method dispatch works correctly", {

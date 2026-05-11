@@ -57,6 +57,14 @@ print.brsm_fit <- function(x, ...) {
     cat("  Observations:           ", nrow(x$fit$data), "\n")
     cat("  Parameters estimated:   ", length(brms::fixef(x$fit)[, 1]), "\n")
 
+    ratio_message <- .brsm_low_information_message(
+      n_obs = nrow(x$fit$data),
+      n_coef = length(brms::fixef(x$fit)[, 1])
+    )
+    if (!is.null(ratio_message)) {
+      cat("  ", ratio_message, "\n", sep = "")
+    }
+
     # Try to extract Rhat summary
     tryCatch(
       {
@@ -103,11 +111,13 @@ summary.brsm_fit <- function(object, ...) {
   # Extract and compute summary of underlying brmsfit
   brmsfit_obj <- object$fit
   brmsfit_summary <- summary(brmsfit_obj, ...)
+  coef_uncertainty <- .brsm_fixed_effect_uncertainty(brmsfit_obj)
 
   # Build custom summary object
   result <- list(
     brsm_fit_obj = object,
     brmsfit_summary = brmsfit_summary,
+    coef_uncertainty = coef_uncertainty,
     formula = object$formula,
     response = object$response,
     factor_names = object$factor_names,
@@ -170,6 +180,25 @@ print.summary.brsm_fit <- function(x, ...) {
       sep = ""
     )
     cat("  Sampling profile: ", x$sampling$sampling_preset, "\n")
+    cat("\n")
+  }
+
+  if (!is.null(x$coef_uncertainty) && nrow(x$coef_uncertainty) > 0L) {
+    n_overlap <- sum(x$coef_uncertainty$overlap_zero, na.rm = TRUE)
+    median_pd <- stats::median(x$coef_uncertainty$pd, na.rm = TRUE)
+
+    cat("Coefficient Uncertainty Check:\n")
+    cat("  Median probability of direction: ",
+      format(round(median_pd, 3), nsmall = 3), "\n",
+      sep = ""
+    )
+    cat("  ", n_overlap, " of ", nrow(x$coef_uncertainty),
+      " coefficients have 95% intervals overlapping 0.\n",
+      sep = ""
+    )
+    if (n_overlap > 0L) {
+      cat("  Caution: rank-ordering small coefficients is unstable when intervals overlap 0.\n")
+    }
     cat("\n")
   }
 
