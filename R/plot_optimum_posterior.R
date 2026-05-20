@@ -8,6 +8,10 @@
 #' @param alpha Transparency for density fill.
 #' @param show_points Logical; if TRUE, overlay posterior sample points.
 #' @param point_alpha Transparency for point overlay.
+#' @param show_uncertainty_contours Logical; if TRUE, draw dashed posterior
+#'   concentration ellipses.
+#' @param uncertainty_levels Numeric vector of levels in (0,1) used for
+#'   concentration ellipses.
 #' @param seed Random seed.
 #'
 #' @return A ggplot2 object.
@@ -26,6 +30,8 @@ plot_optimum_posterior <- function(draws,
                                    alpha = 0.9,
                                    show_points = FALSE,
                                    point_alpha = 0.2,
+                                   show_uncertainty_contours = TRUE,
+                                   uncertainty_levels = c(0.5, 0.8, 0.95),
                                    seed = NULL) {
   draws <- .brsm_validate_draws(draws)
   factor_names <- .brsm_validate_factor_names(
@@ -54,6 +60,18 @@ plot_optimum_posterior <- function(draws,
   if (!is.numeric(point_alpha) || point_alpha < 0 || point_alpha > 1) {
     stop("point_alpha must be between 0 and 1.")
   }
+
+  if (!is.logical(show_uncertainty_contours) ||
+      length(show_uncertainty_contours) != 1L) {
+    stop("show_uncertainty_contours must be a single logical value.")
+  }
+
+  if (!is.numeric(uncertainty_levels) || length(uncertainty_levels) == 0L ||
+      any(!is.finite(uncertainty_levels)) ||
+      any(uncertainty_levels <= 0 | uncertainty_levels >= 1)) {
+    stop("uncertainty_levels must be a finite numeric vector in (0, 1).")
+  }
+  uncertainty_levels <- sort(unique(uncertainty_levels))
 
   if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1)) {
     stop("seed must be a single numeric value.")
@@ -114,9 +132,35 @@ plot_optimum_posterior <- function(draws,
       x = factor_names[1],
       y = factor_names[2],
       title = "Posterior Distribution of the Optimum",
+      subtitle = if (isTRUE(show_uncertainty_contours)) {
+        paste0(
+          "Dashed ellipses: ",
+          paste0(formatC(100 * uncertainty_levels, format = "f", digits = 0), "%",
+            collapse = ", "
+          ),
+          " posterior concentration regions"
+        )
+      } else {
+        NULL
+      },
       fill = "Density"
     ) +
     ggplot2::theme_minimal()
+
+  if (isTRUE(show_uncertainty_contours) && nrow(stationary) >= 3L) {
+    for (lev in uncertainty_levels) {
+      p <- p + ggplot2::stat_ellipse(
+        level = lev,
+        type = "norm",
+        linetype = "dashed",
+        color = "black",
+        linewidth = 0.35,
+        alpha = 0.8
+      )
+    }
+  } else if (isTRUE(show_uncertainty_contours) && nrow(stationary) < 3L) {
+    warning("Uncertainty contours require at least 3 stationary draws.")
+  }
 
   # Add sample points (if requested) before mean optimum marker
   if (show_points) {

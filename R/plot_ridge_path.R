@@ -3,6 +3,9 @@ plot_ridge_path <- function(ridge_draws,
                             response = NULL,
                             show_draws = FALSE,
                             alpha = 0.2,
+                            show_interval_crossbars = TRUE,
+                            interval_prob = 0.9,
+                            interval_alpha = 0.35,
                             mean_color = "red",
                             path_color = "black") {
   .brsm_require_ggplot2()
@@ -31,6 +34,21 @@ plot_ridge_path <- function(ridge_draws,
     stop("alpha must be between 0 and 1.")
   }
 
+  if (!is.logical(show_interval_crossbars) ||
+      length(show_interval_crossbars) != 1L) {
+    stop("show_interval_crossbars must be a single logical value.")
+  }
+
+  if (!is.numeric(interval_prob) || length(interval_prob) != 1L ||
+      !is.finite(interval_prob) || interval_prob <= 0 || interval_prob >= 1) {
+    stop("interval_prob must be a finite numeric scalar in (0, 1).")
+  }
+
+  if (!is.numeric(interval_alpha) || length(interval_alpha) != 1L ||
+      interval_alpha < 0 || interval_alpha > 1) {
+    stop("interval_alpha must be between 0 and 1.")
+  }
+
   # Remove missing values
   removed <- sum(!stats::complete.cases(ridge_draws))
   ridge_draws <- ridge_draws[stats::complete.cases(ridge_draws), , drop = FALSE]
@@ -51,6 +69,25 @@ plot_ridge_path <- function(ridge_draws,
   colnames(mean_path) <- c("level", factor_names)
   mean_path <- mean_path[order(mean_path$level), ] # Ensure correct path order
 
+  interval_probs <- c((1 - interval_prob) / 2, 1 - (1 - interval_prob) / 2)
+  interval_path <- do.call(
+    rbind,
+    lapply(split(ridge_draws, ridge_draws[[response]]), function(df_level) {
+      data.frame(
+        level = df_level[[response]][1],
+        x = mean(df_level[[factor_names[1]]], na.rm = TRUE),
+        y = mean(df_level[[factor_names[2]]], na.rm = TRUE),
+        x_low = stats::quantile(df_level[[factor_names[1]]], interval_probs[1], na.rm = TRUE),
+        x_high = stats::quantile(df_level[[factor_names[1]]], interval_probs[2], na.rm = TRUE),
+        y_low = stats::quantile(df_level[[factor_names[2]]], interval_probs[1], na.rm = TRUE),
+        y_high = stats::quantile(df_level[[factor_names[2]]], interval_probs[2], na.rm = TRUE),
+        row.names = NULL,
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+  interval_path <- interval_path[order(interval_path$level), , drop = FALSE]
+
   # Base plot
   p <- ggplot2::ggplot(
     ridge_draws,
@@ -63,7 +100,16 @@ plot_ridge_path <- function(ridge_draws,
       x = factor_names[1],
       y = factor_names[2],
       title = "Posterior Mean Ridge Optimization Path",
-      subtitle = paste("Indexed by", response)
+      subtitle = if (isTRUE(show_interval_crossbars)) {
+        paste0(
+          "Indexed by ", response,
+          "; crossbars show ",
+          formatC(100 * interval_prob, format = "f", digits = 0),
+          "% pointwise posterior intervals"
+        )
+      } else {
+        paste("Indexed by", response)
+      }
     ) +
     ggplot2::theme_minimal()
 
@@ -73,6 +119,24 @@ plot_ridge_path <- function(ridge_draws,
       ggplot2::geom_point(
         alpha = alpha,
         size = 0.7
+      )
+  }
+
+  if (isTRUE(show_interval_crossbars)) {
+    p <- p +
+      ggplot2::geom_segment(
+        data = interval_path,
+        ggplot2::aes(x = .data$x_low, xend = .data$x_high, y = .data$y, yend = .data$y),
+        color = path_color,
+        alpha = interval_alpha,
+        linewidth = 0.45
+      ) +
+      ggplot2::geom_segment(
+        data = interval_path,
+        ggplot2::aes(x = .data$x, xend = .data$x, y = .data$y_low, yend = .data$y_high),
+        color = path_color,
+        alpha = interval_alpha,
+        linewidth = 0.45
       )
   }
 

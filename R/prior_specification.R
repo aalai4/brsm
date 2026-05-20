@@ -446,3 +446,487 @@ specify_brsm_priors <- function(
 
   if (length(idx) == 0L) NA_character_ else available_b_coefs[idx[[1L]]]
 }
+
+
+#' Check Prior Specifications with Predictive Simulation
+#'
+#' Visualizes the prior predictive distribution implied by specified priors,
+#' allowing users to assess whether priors place reasonable mass on plausible
+#' response surfaces before committing to full Bayesian fitting.
+#'
+#' Samples coefficients and residual standard deviation from the prior
+#' specification, then generates and visualizes predictions across factor
+#' ranges. Warnings are raised if the prior predictive distribution seems
+#' misaligned with observed response data.
+#'
+#' @param data Data frame containing response and factor columns.
+#' @param response Name of the response variable (used for scale reference).
+#' @param factor_names Character vector of factor names.
+#' @param prior Optional prior specification. If \code{NULL}, uses
+#'   \code{prior_profile} to generate priors.
+#' @param prior_profile Prior profile to use when \code{prior = NULL}.
+#'   One of \code{"legacy"}, \code{"regularized"}, or \code{"adaptive"}.
+#'   Default is \code{"legacy"}.
+#' @param model_terms Polynomial term specification (one of
+#'   \code{"second_order"}, \code{"first_order"}, \code{"first_order_twi"},
+#'   or \code{"pure_quadratic"}). Default is \code{"second_order"}.
+#' @param n_prior_samples Number of prior samples to draw. Default is 100.
+#' @param n_grid_per_factor Number of grid points per factor. Default is 10.
+#' @param plot Logical; if \code{TRUE}, creates base-R plots of prior
+#'   predictive distributions. Default is \code{TRUE}.
+#' @param seed Optional random seed for reproducibility.
+#'
+#' @return Invisibly returns a list with elements:
+#'   \code{prior_samples} (data frame of sampled coefficients and sigma),
+#'   \code{predictions} (predictions across grid),
+#'   \code{summary} (summary statistics including min/max/sd of predictions,
+#'   and alignment flags).
+#'   Also prints a summary table of predictions and any warnings.
+#'
+#' @examples
+#' \dontrun{
+#' dat <- data.frame(
+#'   x1 = runif(50, -1, 1),
+#'   x2 = runif(50, -1, 1),
+#'   y = rnorm(50, mean = 5, sd = 1)
+#' )
+#' check_brsm_priors(
+#'   data = dat,
+#'   response = "y",
+#'   factor_names = c("x1", "x2"),
+#'   prior_profile = "regularized",
+#'   n_prior_samples = 200,
+#'   seed = 123
+#' )
+#' }
+#'
+#' @export
+check_brsm_priors <- function(data,
+                              response,
+                              factor_names,
+                              prior = NULL,
+                              prior_profile = c("legacy", "regularized", "adaptive"),
+                              model_terms = c("second_order", "first_order",
+                                              "first_order_twi", "pure_quadratic"),
+                              n_prior_samples = 100L,
+                              n_grid_per_factor = 10L,
+                              plot = TRUE,
+                              seed = NULL) {
+  if (!is.data.frame(data)) {
+    stop("data must be a data.frame.")
+  }
+  if (!is.character(response) || length(response) != 1L) {
+    stop("response must be a single character string.")
+  }
+  if (!response %in% names(data)) {
+    stop("response '", response, "' not found in data.")
+  }
+  if (!is.numeric(data[[response]])) {
+    stop("response column must be numeric.")
+  }
+
+  factor_names <- .brsm_validate_factor_names(factor_names)
+  model_terms <- match.arg(model_terms)
+  prior_profile <- match.arg(prior_profile)
+
+  n_prior_samples <- as.integer(n_prior_samples)
+  n_grid_per_factor <- as.integer(n_grid_per_factor)
+
+  if (n_prior_samples < 1L) {
+    stop("n_prior_samples must be >= 1.")
+  }
+  if (n_grid_per_factor < 2L) {
+    stop("n_grid_per_factor must be >= 2.")
+  }
+
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+
+  # Generate or validate prior
+  if (is.null(prior)) {
+    prior <- specify_brsm_priors(
+      factor_names = factor_names,
+      model_terms = model_terms,
+      prior_profile = prior_profile,
+      autoscale = TRUE,
+      data = data,
+      response = response
+    )
+  }
+
+  # Sample from prior predictive
+  prior_samples <- .brsm_sample_prior_predictive(
+    prior = prior,
+    factor_names = factor_names,
+    model_terms = model_terms,
+    n_samples = n_prior_samples
+  )
+
+  # Create prediction grid
+  grid <- .brsm_create_prediction_grid(
+    data = data,
+    factor_names = factor_names,
+    model_terms = model_terms,
+    n_grid_per_factor = n_grid_per_factor
+  )
+
+  # Generate predictions
+  predictions <- .brsm_predict_from_prior_samples(
+    prior_samples = prior_samples,
+    grid = grid,
+    factor_names = factor_names,
+    model_terms = model_terms
+  )
+
+  # Compute summary statistics
+  y_obs <- data[[response]]
+  y_obs_range <- range(y_obs, na.rm = TRUE)
+  y_obs_mean <- mean(y_obs, na.rm = TRUE)
+  y_obs_sd <- stats::sd(y_obs, na.rm = TRUE)
+
+  pred_stats <- list(
+    min = min(predictions$pred, na.rm = TRUE),
+    max = max(predictions$pred, na.rm = TRUE),
+    mean = mean(predictions$pred, na.rm = TRUE),
+    sd = stats::sd(predictions$pred, na.rm = TRUE),
+    q05 = stats::quantile(predictions$pred, 0.05, na.rm = TRUE),
+    q95 = stats::quantile(predictions$pred, 0.95, na.rm = TRUE)
+  )
+
+  # Check for alignment issues
+  warnings_list <- character(0)
+
+  # Check 1: Does prior predictive range substantially exclude observed data?
+  coverage_ratio <- abs(y_obs_range[2] - y_obs_range[1]) /
+                     abs(pred_stats$q95 - pred_stats$q05)
+  if (coverage_ratio > 2) {
+    warnings_list <- c(warnings_list,
+      "Prior predictive interval is much wider than observed range. Prior may be too diffuse.")
+  }
+
+  # Check 2: Does prior mean imply plausible baseline?
+  if (abs(pred_stats$mean - y_obs_mean) > 2 * y_obs_sd) {
+    warnings_list <- c(warnings_list,
+      "Prior predictive mean differs substantially from observed mean. Consider adjusting intercept prior.")
+  }
+
+  # Create summary
+  summary_table <- data.frame(
+    Statistic = c("Observed Min", "Observed Max", "Observed Mean", "Observed SD",
+                  "Prior Pred Min", "Prior Pred Max", "Prior Pred Mean", "Prior Pred SD",
+                  "Prior Pred 5%", "Prior Pred 95%"),
+    Value = c(
+      y_obs_range[1], y_obs_range[2], y_obs_mean, y_obs_sd,
+      pred_stats$min, pred_stats$max, pred_stats$mean, pred_stats$sd,
+      pred_stats$q05, pred_stats$q95
+    )
+  )
+
+  # Print summary
+  cat("\nPrior Predictive Check:\n\n")
+  cat("Model: ", model_terms, "\n")
+  cat("Factors: ", paste(factor_names, collapse = ", "), "\n")
+  cat("Prior samples drawn: ", n_prior_samples, "\n")
+  cat("Prediction grid: ", paste(rep(n_grid_per_factor, length(factor_names)), collapse = " x "), "\n")
+  cat("\n")
+  print(summary_table, row.names = FALSE)
+  cat("\n")
+
+  if (length(warnings_list) > 0L) {
+    cat("Warnings:\n")
+    for (w in warnings_list) {
+      cat("  - ", w, "\n", sep = "")
+    }
+    cat("\n")
+  }
+
+  # Visualization
+  if (isTRUE(plot)) {
+    .brsm_visualize_prior_predictive(
+      predictions = predictions,
+      factor_names = factor_names,
+      y_obs = y_obs,
+      model_terms = model_terms
+    )
+  }
+
+  invisible(list(
+    prior_samples = prior_samples,
+    predictions = predictions,
+    summary = list(
+      stats = pred_stats,
+      obs_range = y_obs_range,
+      obs_mean = y_obs_mean,
+      obs_sd = y_obs_sd,
+      warnings = warnings_list
+    )
+  ))
+}
+
+
+# Sample coefficient and sigma values from a prior specification
+.brsm_sample_prior_predictive <- function(prior, factor_names, model_terms, n_samples) {
+  if (!requireNamespace("brms", quietly = TRUE)) {
+    stop("package 'brms' is required for prior predictive checks.")
+  }
+
+  # Extract prior specifications
+  prior_df <- as.data.frame(prior)
+
+  # Determine coefficient names based on model_terms
+  linear_coefs <- factor_names
+  interaction_coefs <- if (length(factor_names) > 1) {
+    pairs <- utils::combn(factor_names, 2, simplify = FALSE)
+    vapply(pairs, function(p) paste0(p[1], ":", p[2]), character(1))
+  } else character(0)
+  quadratic_coefs <- if (model_terms %in% c("second_order", "pure_quadratic")) {
+    paste0("I(", factor_names, "^2)")
+  } else character(0)
+
+  # Initialize sample matrix
+  all_coefs <- c("Intercept", linear_coefs, interaction_coefs, quadratic_coefs)
+  samples <- matrix(0, nrow = n_samples, ncol = length(all_coefs) + 1)
+  colnames(samples) <- c(all_coefs, "sigma")
+
+  # Sample from each prior distribution
+  for (coef in all_coefs) {
+    coef_rows <- which(prior_df$class == "b" & prior_df$coef == coef)
+    if (length(coef_rows) == 0) {
+      coef_rows <- which(prior_df$class == "Intercept" & coef == "Intercept")
+    }
+
+    if (length(coef_rows) == 0) {
+      # Default: normal(0, 1) if no prior specified
+      samples[, coef] <- stats::rnorm(n_samples, mean = 0, sd = 1)
+    } else {
+      prior_row <- prior_df[coef_rows[1], ]
+      samples[, coef] <- .brsm_sample_from_prior_spec(prior_row, n_samples)
+    }
+  }
+
+  # Sample sigma
+  sigma_rows <- which(prior_df$class == "sigma")
+  if (length(sigma_rows) > 0) {
+    prior_row <- prior_df[sigma_rows[1], ]
+    samples[, "sigma"] <- abs(.brsm_sample_from_prior_spec(prior_row, n_samples))
+  } else {
+    # Default: student_t(3, 0, 2.5)
+    samples[, "sigma"] <- abs(stats::rt(n_samples, df = 3) * 2.5)
+  }
+
+  as.data.frame(samples)
+}
+
+
+# Sample from a single prior specification (internal helper)
+.brsm_sample_from_prior_spec <- function(prior_row, n_samples) {
+  prior_str <- prior_row$prior
+
+  if (is.na(prior_str) || !nzchar(prior_str)) {
+    return(stats::rnorm(n_samples, 0, 1))
+  }
+
+  # Parse common prior families
+  # normal(mu, sigma)
+  if (grepl("^normal\\(", prior_str)) {
+    params <- .brsm_extract_prior_params(prior_str)
+    mu <- if (length(params) > 0) params[1] else 0
+    sigma <- if (length(params) > 1) params[2] else 1
+    return(stats::rnorm(n_samples, mean = mu, sd = sigma))
+  }
+
+  # student_t(df, mu, sigma)
+  if (grepl("^student_t\\(", prior_str)) {
+    params <- .brsm_extract_prior_params(prior_str)
+    df <- if (length(params) > 0) params[1] else 3
+    mu <- if (length(params) > 1) params[2] else 0
+    sigma <- if (length(params) > 2) params[3] else 1
+    return(mu + sigma * stats::rt(n_samples, df = df))
+  }
+
+  # exponential(lambda)
+  if (grepl("^exponential\\(", prior_str)) {
+    params <- .brsm_extract_prior_params(prior_str)
+    lambda <- if (length(params) > 0) params[1] else 1
+    return(stats::rexp(n_samples, rate = lambda))
+  }
+
+  # Default fallback
+  stats::rnorm(n_samples, 0, 1)
+}
+
+
+# Extract numeric parameters from a prior string (internal helper)
+.brsm_extract_prior_params <- function(prior_str) {
+  # Remove family name and parentheses
+  inner <- sub("^[a-z_]+\\((.*)\\)$", "\\1", prior_str)
+  if (inner == prior_str) {
+    return(numeric(0))
+  }
+
+  # Split by comma and convert to numeric
+  parts <- strsplit(inner, ",", fixed = TRUE)[[1]]
+  as.numeric(trimws(parts))
+}
+
+
+# Create a prediction grid for factors
+.brsm_create_prediction_grid <- function(data, factor_names, model_terms, n_grid_per_factor) {
+  grids <- lapply(factor_names, function(f) {
+    vals <- data[[f]]
+    vals <- vals[!is.na(vals)]
+    if (length(vals) == 0) {
+      seq(-1, 1, length.out = n_grid_per_factor)
+    } else {
+      seq(min(vals), max(vals), length.out = n_grid_per_factor)
+    }
+  })
+  names(grids) <- factor_names
+
+  # Create full grid
+  grid_df <- do.call(expand.grid, grids)
+
+  # Compute derived terms
+  linear_coefs <- factor_names
+
+  interaction_terms <- if (model_terms %in% c("second_order", "first_order_twi") &&
+                            length(factor_names) > 1) {
+    pairs <- utils::combn(factor_names, 2, simplify = FALSE)
+    for (pair in pairs) {
+      col_name <- paste0(pair[1], ":", pair[2])
+      grid_df[[col_name]] <- grid_df[[pair[1]]] * grid_df[[pair[2]]]
+    }
+    vapply(pairs, function(p) paste0(p[1], ":", p[2]), character(1))
+  } else character(0)
+
+  quadratic_terms <- if (model_terms %in% c("second_order", "pure_quadratic")) {
+    for (f in factor_names) {
+      col_name <- paste0("I(", f, "^2)")
+      grid_df[[col_name]] <- grid_df[[f]]^2
+    }
+    paste0("I(", factor_names, "^2)")
+  } else character(0)
+
+  grid_df$grid_id <- seq_len(nrow(grid_df))
+  grid_df
+}
+
+
+# Generate predictions from prior samples and grid
+.brsm_predict_from_prior_samples <- function(prior_samples, grid, factor_names, model_terms) {
+  linear_coefs <- factor_names
+  interaction_coefs <- if (length(factor_names) > 1) {
+    pairs <- utils::combn(factor_names, 2, simplify = FALSE)
+    vapply(pairs, function(p) paste0(p[1], ":", p[2]), character(1))
+  } else character(0)
+  quadratic_coefs <- if (model_terms %in% c("second_order", "pure_quadratic")) {
+    paste0("I(", factor_names, "^2)")
+  } else character(0)
+
+  all_coefs <- c(linear_coefs, interaction_coefs, quadratic_coefs)
+
+  # Predictions: Intercept + sum of (coef * value) + normal error
+  n_samples <- nrow(prior_samples)
+  n_grid <- nrow(grid)
+
+  pred_matrix <- matrix(0, nrow = n_grid, ncol = n_samples)
+
+  for (i in seq_len(n_grid)) {
+    # Intercept
+    pred_matrix[i, ] <- prior_samples$Intercept
+
+    # Linear terms
+    for (coef in linear_coefs) {
+      if (coef %in% names(grid)) {
+        pred_matrix[i, ] <- pred_matrix[i, ] + prior_samples[[coef]] * grid[i, coef]
+      }
+    }
+
+    # Interaction terms
+    for (coef in interaction_coefs) {
+      if (coef %in% names(grid)) {
+        pred_matrix[i, ] <- pred_matrix[i, ] + prior_samples[[coef]] * grid[i, coef]
+      }
+    }
+
+    # Quadratic terms
+    for (coef in quadratic_coefs) {
+      if (coef %in% names(grid)) {
+        pred_matrix[i, ] <- pred_matrix[i, ] + prior_samples[[coef]] * grid[i, coef]
+      }
+    }
+
+    # Add residual variability
+    pred_matrix[i, ] <- pred_matrix[i, ] + stats::rnorm(n_samples, 0, prior_samples$sigma)
+  }
+
+  # Flatten predictions
+  predictions_vec <- as.numeric(pred_matrix)
+
+  # Replicate grid for each sample
+  grid_rep <- grid[rep(seq_len(nrow(grid)), each = n_samples), ]
+  sample_id <- rep(seq_len(n_samples), n_grid)
+
+  data.frame(
+    sample_id = sample_id,
+    grid_rep,
+    pred = predictions_vec
+  )
+}
+
+
+# Visualize prior predictive distribution
+.brsm_visualize_prior_predictive <- function(predictions, factor_names, y_obs, model_terms) {
+  if (length(factor_names) == 1L) {
+    # 1D case: plot posterior predictive density + observed histogram
+    oldpar <- graphics::par(mfrow = c(1, 1))
+    on.exit(graphics::par(oldpar))
+
+    graphics::hist(y_obs, breaks = "Sturges", main = "Prior Predictive Check (1D)",
+                   xlab = "Response", freq = FALSE, col = "lightgray", alpha = 0.7)
+    graphics::lines(stats::density(predictions$pred, na.rm = TRUE), col = "blue", lwd = 2)
+    graphics::legend("topright",
+                     legend = c("Observed data", "Prior predictive"),
+                     col = c("gray", "blue"),
+                     lty = c(0, 1), pch = c(15, NA_integer_))
+
+  } else if (length(factor_names) == 2L) {
+    # 2D case: plot prior predictive surface for a few samples
+    oldpar <- graphics::par(mfrow = c(2, 2))
+    on.exit(graphics::par(oldpar))
+
+    unique_samples <- unique(predictions$sample_id)[1:4]
+
+    for (sample_idx in unique_samples) {
+      pred_subset <- predictions[predictions$sample_id == sample_idx, ]
+      x1_name <- factor_names[1]
+      x2_name <- factor_names[2]
+
+      x1_vals <- sort(unique(pred_subset[[x1_name]]))
+      x2_vals <- sort(unique(pred_subset[[x2_name]]))
+
+      z_mat <- matrix(pred_subset$pred, nrow = length(x1_vals), ncol = length(x2_vals))
+
+      graphics::contour(x1_vals, x2_vals, z_mat,
+                        main = paste("Prior Sample", sample_idx),
+                        xlab = x1_name, ylab = x2_name)
+    }
+
+  } else {
+    # High-dimensional case: just plot prior predictive density
+    oldpar <- graphics::par(mfrow = c(1, 1))
+    on.exit(graphics::par(oldpar))
+
+    graphics::hist(y_obs, breaks = "Sturges",
+                   main = paste("Prior Predictive Check (", length(factor_names), " factors)"),
+                   xlab = "Response", freq = FALSE, col = "lightgray", alpha = 0.7)
+    graphics::lines(stats::density(predictions$pred, na.rm = TRUE), col = "blue", lwd = 2)
+    graphics::legend("topright",
+                     legend = c("Observed data", "Prior predictive"),
+                     col = c("gray", "blue"),
+                     lty = c(0, 1), pch = c(15, NA_integer_))
+  }
+
+  invisible(NULL)
+}

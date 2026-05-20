@@ -10,9 +10,7 @@
 #' @keywords internal
 #' @export
 print.brsm_fit <- function(x, ...) {
-  cat("\n")
-  cat("Bayesian Response Surface Model\n")
-  cat(strrep("=", 60), "\n\n")
+  cat("\nBayesian Response Surface Model\n\n")
 
   # Model specification
   cat("Model Formula:\n")
@@ -143,9 +141,7 @@ summary.brsm_fit <- function(object, ...) {
 #' @keywords internal
 #' @export
 print.summary.brsm_fit <- function(x, ...) {
-  cat("\n")
-  cat("Bayesian Response Surface Model Summary\n")
-  cat(strrep("=", 60), "\n\n")
+  cat("\nBayesian Response Surface Model Summary\n\n")
 
   # Model specification
   cat("Model Formula:\n")
@@ -203,8 +199,7 @@ print.summary.brsm_fit <- function(x, ...) {
   }
 
   # Delegate to brms summary printing
-  cat("Coefficient Summary (via brms):\n")
-  cat(strrep("-", 60), "\n")
+  cat("Coefficient Summary (via brms):\n\n")
   print(x$brmsfit_summary)
 
   invisible(x)

@@ -23,6 +23,7 @@ plot_posterior_contours(
   overlay_type = c("mean", "posterior"),
   overlay_alpha = 0.1,
   overlay_max_draws = 2000,
+  uncertainty_overlay = FALSE,
   seed = NULL
 )
 }
@@ -62,6 +63,10 @@ plot_posterior_contours(
 \item{overlay_alpha}{Transparency for posterior draw overlay.}
 
 \item{overlay_max_draws}{Cap on posterior draws for overlay.}
+
+\item{uncertainty_overlay}{Logical; if TRUE and \code{type} is not
+\code{"uncertainty"}, overlays dashed uncertainty contours based on
+\code{probs}.}
 
 \item{seed}{Random seed.}
 }

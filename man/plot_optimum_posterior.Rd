@@ -13,6 +13,8 @@ plot_optimum_posterior(
   alpha = 0.9,
   show_points = FALSE,
   point_alpha = 0.2,
+  show_uncertainty_contours = TRUE,
+  uncertainty_levels = c(0.5, 0.8, 0.95),
   seed = NULL
 )
 }
@@ -32,6 +34,12 @@ plot_optimum_posterior(
 \item{show_points}{Logical; if TRUE, overlay posterior sample points.}
 
 \item{point_alpha}{Transparency for point overlay.}
+
+\item{show_uncertainty_contours}{Logical; if TRUE, draw dashed posterior
+concentration ellipses.}
+
+\item{uncertainty_levels}{Numeric vector of levels in (0,1) used for
+concentration ellipses.}
 
 \item{seed}{Random seed.}
 }

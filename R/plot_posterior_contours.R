@@ -18,6 +18,8 @@
 #' @param overlay_type Type of stationary overlay ("mean" or "posterior").
 #' @param overlay_alpha Transparency for posterior draw overlay.
 #' @param overlay_max_draws Cap on posterior draws for overlay.
+#' @param uncertainty_overlay Logical; if TRUE and `type` is not
+#'   `"uncertainty"`, overlays dashed uncertainty contours based on `probs`.
 #' @param seed Random seed.
 #'
 #' @return A ggplot2 object.
@@ -48,6 +50,7 @@ plot_posterior_contours <- function(draws,
                                     overlay_type = c("mean", "posterior"),
                                     overlay_alpha = 0.1,
                                     overlay_max_draws = 2000,
+                                    uncertainty_overlay = FALSE,
                                     seed = NULL) {
   draws <- .brsm_validate_draws(draws)
   factor_names <- .brsm_validate_factor_names(factor_names)
@@ -101,6 +104,10 @@ plot_posterior_contours <- function(draws,
 
   if (!is.logical(pairwise) || length(pairwise) != 1L) {
     stop("pairwise must be a single logical value.")
+  }
+
+  if (!is.logical(uncertainty_overlay) || length(uncertainty_overlay) != 1L) {
+    stop("uncertainty_overlay must be a single logical value.")
   }
 
   if (!is.null(slice)) {
@@ -212,6 +219,10 @@ plot_posterior_contours <- function(draws,
 
   type <- match.arg(type)
 
+  pct_label <- function(x) {
+    paste0(formatC(100 * x, format = "f", digits = 1), "%")
+  }
+
   if (type == "uncertainty") {
     probs <- .brsm_validate_probs(
       probs,
@@ -294,9 +305,33 @@ plot_posterior_contours <- function(draws,
   }, numeric(1))
 
   # Determine which variable to plot
+  subtitle_text <- NULL
+  fill_label <- NULL
   if (type == "mean") {
     pred$z <- pred$mean
     plot_title <- "Posterior Mean Surface"
+    fill_label <- "Posterior mean"
+
+    if (isTRUE(uncertainty_overlay)) {
+      probs <- .brsm_validate_probs(
+        probs,
+        require_length = 2,
+        message = paste0(
+          "For uncertainty_overlay=TRUE, probs must be a numeric vector ",
+          "of length 2 with values between 0 and 1."
+        )
+      )
+      lower_name <- paste0("q", formatC(probs[1] * 100, format = "f", digits = 1))
+      upper_name <- paste0("q", formatC(probs[2] * 100, format = "f", digits = 1))
+      if (!all(c(lower_name, upper_name) %in% names(pred))) {
+        stop("predict_surface() did not return expected quantile columns.")
+      }
+      pred$.uncertainty_width <- pred[[upper_name]] - pred[[lower_name]]
+      subtitle_text <- paste0(
+        "Dashed contours show predictive interval width (",
+        pct_label(probs[1]), " to ", pct_label(probs[2]), ")."
+      )
+    }
   } else if (type == "uncertainty") {
     lower_name <- paste0("q", formatC(probs[1] * 100, format = "f", digits = 1))
     upper_name <- paste0("q", formatC(probs[2] * 100, format = "f", digits = 1))
@@ -305,6 +340,10 @@ plot_posterior_contours <- function(draws,
     }
     pred$z <- pred[[upper_name]] - pred[[lower_name]]
     plot_title <- "Posterior Uncertainty Surface"
+    fill_label <- paste0(
+      "PI width (", pct_label(probs[1]), " to ", pct_label(probs[2]), ")"
+    )
+    subtitle_text <- "Larger values indicate higher posterior predictive uncertainty."
   } else if (type == "quantile") {
     qname <- paste0("q", formatC(quantile * 100, format = "f", digits = 1))
     if (!(qname %in% names(pred))) {
@@ -312,6 +351,28 @@ plot_posterior_contours <- function(draws,
     }
     pred$z <- pred[[qname]]
     plot_title <- paste0("Posterior Quantile Surface (", quantile, ")")
+    fill_label <- paste0("Posterior quantile ", pct_label(quantile))
+
+    if (isTRUE(uncertainty_overlay)) {
+      probs <- .brsm_validate_probs(
+        probs,
+        require_length = 2,
+        message = paste0(
+          "For uncertainty_overlay=TRUE, probs must be a numeric vector ",
+          "of length 2 with values between 0 and 1."
+        )
+      )
+      lower_name <- paste0("q", formatC(probs[1] * 100, format = "f", digits = 1))
+      upper_name <- paste0("q", formatC(probs[2] * 100, format = "f", digits = 1))
+      if (!all(c(lower_name, upper_name) %in% names(pred))) {
+        stop("predict_surface() did not return expected quantile columns.")
+      }
+      pred$.uncertainty_width <- pred[[upper_name]] - pred[[lower_name]]
+      subtitle_text <- paste0(
+        "Dashed contours show predictive interval width (",
+        pct_label(probs[1]), " to ", pct_label(probs[2]), ")."
+      )
+    }
   }
 
   p <- ggplot2::ggplot(
@@ -329,9 +390,22 @@ plot_posterior_contours <- function(draws,
     ggplot2::labs(
       x = "factor 1",
       y = "factor 2",
-      title = plot_title
+      title = plot_title,
+      subtitle = subtitle_text,
+      fill = fill_label
     ) +
     ggplot2::theme_minimal()
+
+  if (isTRUE(uncertainty_overlay) && type != "uncertainty") {
+    p <- p + ggplot2::geom_contour(
+      ggplot2::aes(z = .data$.uncertainty_width),
+      bins = max(3L, floor(bins / 2L)),
+      color = "black",
+      linetype = "dashed",
+      linewidth = 0.35,
+      alpha = 0.75
+    )
+  }
 
   if (length(unique(pred$.panel)) > 1L) {
     p <- p + ggplot2::facet_wrap(~.panel, scales = "free")
