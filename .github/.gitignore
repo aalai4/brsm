@@ -1,1 +1,5 @@
 *.html
+renv/library
+renv/staging
+renv/sandbox/
+.vscode/
