@@ -15,7 +15,7 @@ check_brsm_ppc(
 }
 \arguments{
 \item{object}{A \code{brsm_fit} object from [fit_brsm()] or a
-\code{brmsfit} object.}
+\code{brsm_conjugate_fit} object.}
 
 \item{ndraws}{Number of posterior predictive draws.}
 
@@ -23,10 +23,9 @@ check_brsm_ppc(
 
 \item{seed}{Optional random seed.}
 
-\item{include_plot}{Logical; if \code{TRUE}, includes a \code{pp_check}
-histogram overlay plot in the output.}
+\item{include_plot}{Logical; if \code{TRUE}, includes a ggplot2 density overlay.}
 
-\item{...}{Additional arguments passed to \code{brms::posterior_predict()}.}
+\item{...}{Additional arguments.}
 }
 \value{
 A list with components:

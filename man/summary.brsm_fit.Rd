@@ -9,16 +9,15 @@
 \arguments{
 \item{object}{An object of class \code{brsm_fit}.}
 
-\item{...}{Additional arguments passed to \code{brms::summary.brmsfit()}.}
+\item{...}{Additional arguments.}
 }
 \value{
 An object of class \code{summary.brsm_fit} containing:
   \code{brsm_fit_obj} (the original brsm_fit object) and
-  \code{brmsfit_summary} (summary of the underlying brmsfit).
+  \code{fit_summary} (summary of the underlying conjugate fit).
 }
 \description{
 Display a detailed summary of a fitted Bayesian response surface model,
-including MCMC diagnostics and coefficient summaries from the underlying
-\code{brmsfit} object.
+including coefficient summaries from the exact conjugate fit.
 }
 \keyword{internal}

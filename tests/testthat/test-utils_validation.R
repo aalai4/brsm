@@ -29,7 +29,7 @@ test_that("internal validators cover edge branches", {
 test_that(".brsm_validate_bayesian_input handles all accepted and rejected classes", {
   expect_error(
     brsm:::.brsm_validate_bayesian_input(structure(list(fit = NULL), class = "brsm_fit")),
-    "valid brmsfit"
+    "valid fit"
   )
 
   fake_brmsfit <- structure(list(), class = "brmsfit")

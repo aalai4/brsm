@@ -3,16 +3,14 @@
 \name{as_brsm_draws}
 \alias{as_brsm_draws}
 \alias{as_brsm_draws.brsm_fit}
-\alias{as_brsm_draws.brmsfit}
 \alias{as_brsm_draws.data.frame}
+\alias{as_brsm_draws.brmsfit}
 \alias{as_brsm_draws.default}
 \title{Convert Model Output to brsm Draws Format}
 \usage{
 as_brsm_draws(object, factor_names, ...)
 
 \method{as_brsm_draws}{brsm_fit}(object, factor_names = NULL, ...)
-
-\method{as_brsm_draws}{brmsfit}(object, factor_names = NULL, ...)
 
 \method{as_brsm_draws}{data.frame}(
   object,
@@ -21,6 +19,8 @@ as_brsm_draws(object, factor_names, ...)
   require_interactions = TRUE,
   ...
 )
+
+\method{as_brsm_draws}{brmsfit}(object, factor_names = NULL, ...)
 
 \method{as_brsm_draws}{default}(object, factor_names, ...)
 }

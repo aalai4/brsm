@@ -17,24 +17,15 @@ test_that(".brsm_residual_scale falls back when sd is zero", {
   expect_true(s > 0)
 })
 
-test_that(".brsm_extract_pareto_k returns empty vector for invalid n_obs", {
-  out <- brsm:::.brsm_extract_pareto_k(fit = NULL, n_obs = 0)
-  expect_equal(length(out), 0L)
-})
-
-test_that(".brsm_extract_pareto_k returns NA vector when fit cannot be processed", {
-  skip_if_not_installed("loo")
-  k <- brsm:::.brsm_extract_pareto_k(fit = list(), n_obs = 5)
-  expect_equal(length(k), 5L)
-  expect_true(all(is.na(k)))
-})
-
 test_that("check_brsm_influence validates scalar arguments", {
-  if (!requireNamespace("brms", quietly = TRUE)) {
-    skip("brms not installed")
-  }
-
-  fake <- structure(list(), class = "brmsfit")
+  fake_fit <- list(
+    X = matrix(1:10, ncol = 2),
+    V_n = diag(2),
+    y = rnorm(5),
+    draws = data.frame(sigma = rnorm(5))
+  )
+  class(fake_fit) <- "brsm_conjugate_fit"
+  fake <- structure(list(fit = fake_fit), class = "brsm_fit")
 
   expect_error(
     check_brsm_influence(fake, ndraws = 0),
@@ -45,26 +36,19 @@ test_that("check_brsm_influence validates scalar arguments", {
     "outlier_sd_threshold must be a positive finite numeric scalar"
   )
   expect_error(
-    check_brsm_influence(fake, pareto_k_threshold = 0),
-    "pareto_k_threshold must be a positive finite numeric scalar"
+    check_brsm_influence(fake, leverage_threshold = 0),
+    "leverage_threshold must be a positive finite numeric scalar"
   )
 })
 
 test_that("check_brsm_influence returns expected structure on real fit", {
-  skip_if_no_brms_tests()
-
   dat <- generate_simulation_data(n = 30, seed = 777)
   fit <- fit_brsm(
     data = dat,
     response = "y",
     factor_names = c("x1", "x2"),
-    chains = 1,
-    iter = 250,
-    warmup = 125,
     seed = 777,
-    sampling_preset = "fast",
-    refresh = 0,
-    silent = 2
+    coding_policy = "ignore"
   )
 
   out <- suppressMessages(check_brsm_influence(
@@ -82,27 +66,20 @@ test_that("check_brsm_influence returns expected structure on real fit", {
 
   expect_true(all(c(
     "obs_id", "observed", "predicted_mean", "residual", "std_residual",
-    "outlier", "pareto_k", "influential"
+    "outlier", "leverage", "influential"
   ) %in% names(out$observations)))
 
   expect_true(is.logical(out$passed))
 })
 
 test_that("check_brsm_influence can return plot", {
-  skip_if_no_brms_tests()
-
   dat <- generate_simulation_data(n = 20, seed = 778)
   fit <- fit_brsm(
     data = dat,
     response = "y",
     factor_names = c("x1", "x2"),
-    chains = 1,
-    iter = 250,
-    warmup = 125,
     seed = 778,
-    sampling_preset = "fast",
-    refresh = 0,
-    silent = 2
+    coding_policy = "ignore"
   )
 
   out <- suppressMessages(check_brsm_influence(

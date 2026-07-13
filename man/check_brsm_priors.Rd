@@ -56,7 +56,8 @@ Invisibly returns a list with elements:
 Visualizes the prior predictive distribution implied by specified priors,
 allowing users to assess whether priors place reasonable mass on plausible
 response surfaces before committing to full Bayesian fitting.
-
+}
+\details{
 Samples coefficients and residual standard deviation from the prior
 specification, then generates and visualizes predictions across factor
 ranges. Warnings are raised if the prior predictive distribution seems
@@ -78,4 +79,5 @@ check_brsm_priors(
   seed = 123
 )
 }
+
 }

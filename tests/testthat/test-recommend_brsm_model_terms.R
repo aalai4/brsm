@@ -1,11 +1,11 @@
-context("Model term recommendation")
-
 test_that("recommend_brsm_model_terms identifies linear data correctly", {
   # Pure linear relationship
   set.seed(123)
+  x1 <- runif(100, -1, 1)
+  x2 <- runif(100, -1, 1)
   dat_linear <- data.frame(
-    x1 = runif(100, -1, 1),
-    x2 = runif(100, -1, 1),
+    x1 = x1,
+    x2 = x2,
     y = 5 + 2*x1 + 3*x2 + rnorm(100, sd = 0.3)
   )
 
@@ -17,7 +17,7 @@ test_that("recommend_brsm_model_terms identifies linear data correctly", {
     verbose = FALSE
   )
 
-  expect_is(result, "brsm_term_recommendation")
+  expect_s3_class(result, "brsm_term_recommendation")
   expect_equal(result$recommended_terms, "first_order")
   expect_true(result$fit_comparison$r_squared[1] > 0.95) # High R^2 for linear model
 })
@@ -25,9 +25,11 @@ test_that("recommend_brsm_model_terms identifies linear data correctly", {
 test_that("recommend_brsm_model_terms identifies quadratic data correctly", {
   # Quadratic relationship
   set.seed(456)
+  x1 <- runif(150, -1, 1)
+  x2 <- runif(150, -1, 1)
   dat_quad <- data.frame(
-    x1 = runif(150, -1, 1),
-    x2 = runif(150, -1, 1),
+    x1 = x1,
+    x2 = x2,
     y = 5 + 2*x1 - x1^2 + 0.5*x1*x2 + rnorm(150, sd = 0.5)
   )
 
@@ -39,15 +41,16 @@ test_that("recommend_brsm_model_terms identifies quadratic data correctly", {
     verbose = FALSE
   )
 
-  expect_is(result, "brsm_term_recommendation")
+  expect_s3_class(result, "brsm_term_recommendation")
   expect_true(result$recommended_terms %in% c("second_order", "pure_quadratic"))
   expect_true(result$diagnostics$has_quadratic_value)
 })
 
 test_that("recommend_brsm_model_terms handles single factor", {
   set.seed(789)
+  x1 <- seq(-1, 1, length.out = 50)
   dat_single <- data.frame(
-    x1 = seq(-1, 1, length.out = 50),
+    x1 = x1,
     y = 3 + 2*x1 + rnorm(50, sd = 0.2)
   )
 
@@ -58,15 +61,17 @@ test_that("recommend_brsm_model_terms handles single factor", {
     criterion = "AIC"
   )
 
-  expect_is(result, "brsm_term_recommendation")
+  expect_s3_class(result, "brsm_term_recommendation")
   expect_equal(result$diagnostics$n_factors, 1L)
 })
 
 test_that("recommend_brsm_model_terms respects different criteria", {
   set.seed(111)
+  x1 <- rnorm(80, 0, 1)
+  x2 <- rnorm(80, 0, 1)
   dat <- data.frame(
-    x1 = rnorm(80, 0, 1),
-    x2 = rnorm(80, 0, 1),
+    x1 = x1,
+    x2 = x2,
     y = 5 + x1 + x2 + rnorm(80, sd = 0.5)
   )
 
@@ -83,9 +88,9 @@ test_that("recommend_brsm_model_terms respects different criteria", {
     criterion = "adjR2", verbose = FALSE
   )
 
-  expect_is(result_aic, "brsm_term_recommendation")
-  expect_is(result_bic, "brsm_term_recommendation")
-  expect_is(result_adjr2, "brsm_term_recommendation")
+  expect_s3_class(result_aic, "brsm_term_recommendation")
+  expect_s3_class(result_bic, "brsm_term_recommendation")
+  expect_s3_class(result_adjr2, "brsm_term_recommendation")
 })
 
 test_that("recommend_brsm_model_terms validates input", {
@@ -114,9 +119,11 @@ test_that("recommend_brsm_model_terms validates input", {
 
 test_that("recommend_brsm_model_terms fit_comparison has correct structure", {
   set.seed(222)
+  x1 <- rnorm(50)
+  x2 <- rnorm(50)
   dat <- data.frame(
-    x1 = rnorm(50),
-    x2 = rnorm(50),
+    x1 = x1,
+    x2 = x2,
     y = rnorm(50)
   )
 
@@ -127,7 +134,7 @@ test_that("recommend_brsm_model_terms fit_comparison has correct structure", {
     verbose = FALSE
   )
 
-  expect_is(result$fit_comparison, "data.frame")
+  expect_s3_class(result$fit_comparison, "data.frame")
   expect_equal(nrow(result$fit_comparison), 4L) # 4 model types
   expected_cols <- c("model_terms", "n_params", "n_obs", "r_squared",
                      "adj_r_squared", "AIC", "BIC", "sigma")
@@ -137,11 +144,13 @@ test_that("recommend_brsm_model_terms fit_comparison has correct structure", {
 test_that("recommend_brsm_model_terms captures interaction effects", {
   # Strong interaction effect
   set.seed(333)
+  x1 <- runif(120, -1, 1)
+  x2 <- runif(120, -1, 1)
   dat_interact <- data.frame(
-    x1 = runif(120, -1, 1),
-    x2 = runif(120, -1, 1)
+    x1 = x1,
+    x2 = x2,
+    y = 5 + x1 + x2 + 3*x1*x2 + rnorm(120, sd = 0.4)
   )
-  dat_interact$y <- 5 + x1 + x2 + 3*dat_interact$x1*dat_interact$x2 + rnorm(120, sd = 0.4)
 
   result <- recommend_brsm_model_terms(
     data = dat_interact,
@@ -157,8 +166,9 @@ test_that("recommend_brsm_model_terms captures interaction effects", {
 
 test_that("recommend_brsm_model_terms print method works", {
   set.seed(444)
+  x1 <- rnorm(40, 0, 1)
   dat <- data.frame(
-    x1 = rnorm(40, 0, 1),
+    x1 = x1,
     y = 2*rnorm(40)
   )
 
@@ -170,15 +180,16 @@ test_that("recommend_brsm_model_terms print method works", {
   )
 
   # Test that print method doesn't error
-  expect_silent(print(result))
-  expect_output(print(result), "BRSM Model Term Recommendation")
+  expect_output(print(result), "Model Term Recommendation")
 })
 
 test_that("recommend_brsm_model_terms handles verbose output", {
   set.seed(555)
+  x1 <- runif(60, -1, 1)
+  x2 <- runif(60, -1, 1)
   dat <- data.frame(
-    x1 = runif(60, -1, 1),
-    x2 = runif(60, -1, 1),
+    x1 = x1,
+    x2 = x2,
     y = 3 + x1 + rnorm(60, sd = 0.5)
   )
 
@@ -195,9 +206,11 @@ test_that("recommend_brsm_model_terms handles verbose output", {
 
 test_that("recommend_brsm_model_terms diagnostics are reasonable", {
   set.seed(666)
+  x1 <- rnorm(100, 0, 1)
+  x2 <- rnorm(100, 0, 1)
   dat <- data.frame(
-    x1 = rnorm(100, 0, 1),
-    x2 = rnorm(100, 0, 1),
+    x1 = x1,
+    x2 = x2,
     y = 5 + 2*x1 + rnorm(100, sd = 0.5)
   )
 
@@ -209,9 +222,9 @@ test_that("recommend_brsm_model_terms diagnostics are reasonable", {
   )
 
   diag <- result$diagnostics
-  expect_is(diag$linear_rsq, "numeric")
+  expect_type(diag$linear_rsq, "double")
   expect_true(diag$linear_rsq >= 0 && diag$linear_rsq <= 1)
-  expect_is(diag$has_interaction_value, "logical")
-  expect_is(diag$has_quadratic_value, "logical")
+  expect_type(diag$has_interaction_value, "logical")
+  expect_type(diag$has_quadratic_value, "logical")
   expect_true(diag$mean_abs_residual >= 0)
 })

@@ -139,19 +139,12 @@ test_that("print.brsm_fit displays coding method if applicable", {
   expect_true(any(grepl("zscore", result, fixed = TRUE)))
 })
 
-test_that("print.brsm_fit displays MCMC configuration", {
+test_that("print.brsm_fit displays Conjugate configuration", {
   skip_if_no_brms_tests()
 
   result <- capture.output(print(.psm_fit("plain", seed = 409)))
-  expect_true(any(grepl("MCMC Sampling", result, fixed = TRUE)))
-  expect_true(any(grepl("Chains", result, fixed = TRUE)))
-})
-
-test_that("print.brsm_fit displays convergence diagnostics (Rhat)", {
-  skip_if_no_brms_tests()
-
-  result <- capture.output(print(.psm_fit("plain", seed = 410)))
-  expect_true(any(grepl("Rhat", result, fixed = TRUE)))
+  expect_true(any(grepl("Conjugate Draws", result, fixed = TRUE)))
+  expect_true(any(grepl("Draws", result, fixed = TRUE)))
 })
 
 test_that("print.brsm_fit reports low data-to-complexity guidance", {
@@ -190,7 +183,7 @@ test_that("summary.brsm_fit delegates to brms::summary", {
 
   result <- summary(fit)
   expect_s3_class(result, "summary.brsm_fit")
-  expect_true("brmsfit_summary" %in% names(result))
+  expect_true("fit_summary" %in% names(result))
   expect_equal(result$response, "y")
 })
 
@@ -279,33 +272,23 @@ test_that("print handles missing metadata gracefully", {
   expect_no_error(print(fit_missing))
 })
 
-test_that("summary.brsm_fit with different chains/iterations", {
+test_that("summary.brsm_fit with different draws", {
   skip_if_no_brms_tests()
 
   fit_small <- fit_brsm(
     data = generate_simulation_data(n = 25, seed = 422),
     response = "y",
     factor_names = c("x1", "x2"),
-    chains = 1,
-    iter = 200,
-    warmup = 100,
-    seed = 422,
-    sampling_preset = "fast",
-    refresh = 0,
-    silent = 2
+    draws = 200,
+    seed = 422
   )
 
   fit_large <- fit_brsm(
     data = generate_simulation_data(n = 25, seed = 423),
     response = "y",
     factor_names = c("x1", "x2"),
-    chains = 1,
-    iter = 300,
-    warmup = 150,
-    seed = 423,
-    sampling_preset = "fast",
-    refresh = 0,
-    silent = 2
+    draws = 300,
+    seed = 423
   )
 
   result_small <- summary(fit_small)
@@ -313,6 +296,6 @@ test_that("summary.brsm_fit with different chains/iterations", {
 
   expect_s3_class(result_small, "summary.brsm_fit")
   expect_s3_class(result_large, "summary.brsm_fit")
-  expect_equal(fit_small$sampling$iter, 200)
-  expect_equal(fit_large$sampling$iter, 300)
+  expect_equal(fit_small$sampling$draws, 200)
+  expect_equal(fit_large$sampling$draws, 300)
 })

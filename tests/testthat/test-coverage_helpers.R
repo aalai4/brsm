@@ -164,7 +164,7 @@ test_that("as_brsm_draws validates fake brmsfit and dispatches by model terms", 
   expect_error(as_brsm_draws(fake_linear), "factor_names must be supplied")
   expect_error(
     as_brsm_draws(fake_linear, factor_names = c("x1", "x2")),
-    "missing required posterior coefficient columns"
+    "Missing required columns"
   )
 
   first_order_fit <- .make_local_mock_brsm_fit()
@@ -225,7 +225,7 @@ test_that("as_brsm_draws covers remaining edge branches", {
   bad_fit <- structure(list(fit = NULL, factor_names = c("x1", "x2")), class = "brsm_fit")
   expect_error(
     brsm::as_brsm_draws(bad_fit),
-    "must contain a valid brmsfit model"
+    "valid fit"
   )
 
   # Missing interaction when require_interactions = TRUE.

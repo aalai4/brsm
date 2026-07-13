@@ -9,7 +9,7 @@ check_brsm_influence(
   ndraws = 400,
   probs = c(0.025, 0.975),
   outlier_sd_threshold = 3,
-  pareto_k_threshold = 0.7,
+  leverage_threshold = NULL,
   seed = NULL,
   include_plot = FALSE,
   verbose = TRUE,
@@ -18,7 +18,7 @@ check_brsm_influence(
 }
 \arguments{
 \item{object}{A \code{brsm_fit} object from [fit_brsm()] or a
-\code{brmsfit} object.}
+\code{brsm_conjugate_fit} object.}
 
 \item{ndraws}{Number of posterior predictive draws used to compute
 predictive means and intervals.}
@@ -27,8 +27,8 @@ predictive means and intervals.}
 
 \item{outlier_sd_threshold}{Threshold for standardized residual outliers.}
 
-\item{pareto_k_threshold}{Pareto-\eqn{k} threshold above which observations
-are flagged as influential.}
+\item{leverage_threshold}{Leverage threshold above which observations
+are flagged as influential. If \code{NULL}, defaults to \code{3 * p / n}.}
 
 \item{seed}{Optional random seed.}
 
@@ -37,7 +37,7 @@ diagnostic plot in the output.}
 
 \item{verbose}{Logical; if \code{TRUE}, prints a concise summary.}
 
-\item{...}{Additional arguments passed to \code{brms::loo()}.}
+\item{...}{Additional arguments.}
 }
 \value{
 A list with components:
@@ -48,16 +48,18 @@ A list with components:
 \description{
 Computes observation-level outlier and influence diagnostics for Bayesian
 response surface models.
-
+}
+\details{
 Outlier diagnostics combine two signals:
 \itemize{
   \item standardized residual magnitude (\code{|r_i| / sd(r)})
   \item posterior predictive interval coverage
 }
 
-Influence diagnostics are based on Pareto-\eqn{k} values from
-leave-one-out (LOO) diagnostics. Observations with high Pareto-\eqn{k}
-are flagged as influential.
+Influence diagnostics are based on analytical leverage values
+\eqn{h_i = \text{diag}(X \mathbf{V}_n X^{\top})} computed from the
+posterior covariance. Observations with high leverage are flagged
+as influential.
 }
 \examples{
 \dontrun{

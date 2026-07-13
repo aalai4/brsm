@@ -9,23 +9,24 @@
 #'   \item posterior predictive interval coverage
 #' }
 #'
-#' Influence diagnostics are based on Pareto-\eqn{k} values from
-#' leave-one-out (LOO) diagnostics. Observations with high Pareto-\eqn{k}
-#' are flagged as influential.
+#' Influence diagnostics are based on analytical leverage values
+#' \eqn{h_i = \text{diag}(X \mathbf{V}_n X^{\top})} computed from the
+#' posterior covariance. Observations with high leverage are flagged
+#' as influential.
 #'
 #' @param object A \code{brsm_fit} object from [fit_brsm()] or a
-#'   \code{brmsfit} object.
+#'   \code{brsm_conjugate_fit} object.
 #' @param ndraws Number of posterior predictive draws used to compute
 #'   predictive means and intervals.
 #' @param probs Length-2 numeric vector of predictive interval probabilities.
 #' @param outlier_sd_threshold Threshold for standardized residual outliers.
-#' @param pareto_k_threshold Pareto-\eqn{k} threshold above which observations
-#'   are flagged as influential.
+#' @param leverage_threshold Leverage threshold above which observations
+#'   are flagged as influential. If \code{NULL}, defaults to \code{3 * p / n}.
 #' @param seed Optional random seed.
 #' @param include_plot Logical; if \code{TRUE}, includes a ggplot residual
 #'   diagnostic plot in the output.
 #' @param verbose Logical; if \code{TRUE}, prints a concise summary.
-#' @param ... Additional arguments passed to \code{brms::loo()}.
+#' @param ... Additional arguments.
 #'
 #' @return A list with components:
 #'   \code{overview} (one-row data frame), \code{observations}
@@ -44,15 +45,11 @@ check_brsm_influence <- function(object,
                                  ndraws = 400,
                                  probs = c(0.025, 0.975),
                                  outlier_sd_threshold = 3,
-                                 pareto_k_threshold = 0.7,
+                                 leverage_threshold = NULL,
                                  seed = NULL,
                                  include_plot = FALSE,
                                  verbose = TRUE,
                                  ...) {
-  if (!requireNamespace("brms", quietly = TRUE)) {
-    stop("package 'brms' is required for check_brsm_influence().")
-  }
-
   if (!is.numeric(ndraws) || length(ndraws) != 1L || !is.finite(ndraws) ||
       ndraws < 1) {
     stop("ndraws must be a positive finite integer.")
@@ -66,27 +63,35 @@ check_brsm_influence <- function(object,
     stop("outlier_sd_threshold must be a positive finite numeric scalar.")
   }
 
-  if (!is.numeric(pareto_k_threshold) || length(pareto_k_threshold) != 1L ||
-      !is.finite(pareto_k_threshold) || pareto_k_threshold <= 0) {
-    stop("pareto_k_threshold must be a positive finite numeric scalar.")
+  if (!is.null(leverage_threshold) &&
+      (!is.numeric(leverage_threshold) || length(leverage_threshold) != 1L ||
+       !is.finite(leverage_threshold) || leverage_threshold <= 0)) {
+    stop("leverage_threshold must be a positive finite numeric scalar.")
   }
 
-  fit <- .brsm_extract_fit(object, caller = "check_brsm_influence")
+  fit <- object
+  if (inherits(object, "brsm_fit")) {
+    fit <- object$fit
+  }
+
+  if (!inherits(fit, "brsm_conjugate_fit")) {
+    stop("object must be a brsm_fit or brsm_conjugate_fit object in check_brsm_influence().")
+  }
 
   if (!is.null(seed)) {
     set.seed(seed)
   }
 
-  y <- as.numeric(brms::get_y(fit))
-  yrep <- brms::posterior_predict(fit, ndraws = ndraws)
+  y <- fit$y
+  yrep <- posterior_predict_brsm(fit, max_draws = ndraws)
 
   if (!is.matrix(yrep) && !is.data.frame(yrep)) {
-    stop("posterior_predict did not return a matrix-like object.")
+    stop("posterior_predict_brsm did not return a matrix-like object.")
   }
   yrep <- as.matrix(yrep)
 
   if (ncol(yrep) != length(y)) {
-    stop("posterior_predict output columns do not match number of observations.")
+    stop("posterior_predict_brsm output columns do not match number of observations.")
   }
 
   yhat <- colMeans(yrep)
@@ -101,8 +106,14 @@ check_brsm_influence <- function(object,
   outlier_interval <- y < lower | y > upper
   outlier_any <- outlier_std | outlier_interval
 
-  pareto_k <- .brsm_extract_pareto_k(fit, n_obs = length(y), ...)
-  influential <- !is.na(pareto_k) & pareto_k > pareto_k_threshold
+  X <- fit$X
+  V_n <- fit$V_n
+  leverage <- rowSums((X %*% V_n) * X)
+
+  if (is.null(leverage_threshold)) {
+    leverage_threshold <- 3 * ncol(X) / nrow(X)
+  }
+  influential <- leverage > leverage_threshold
 
   obs_diag <- data.frame(
     obs_id = seq_along(y),
@@ -115,24 +126,23 @@ check_brsm_influence <- function(object,
     outlier_std = outlier_std,
     outlier_interval = outlier_interval,
     outlier = outlier_any,
-    pareto_k = pareto_k,
+    leverage = leverage,
     influential = influential,
     stringsAsFactors = FALSE
   )
 
-  n_pareto_available <- sum(!is.na(obs_diag$pareto_k))
   n_influential <- sum(obs_diag$influential, na.rm = TRUE)
   n_outliers <- sum(obs_diag$outlier, na.rm = TRUE)
 
   passed_outlier <- n_outliers == 0
-  passed_influence <- n_pareto_available == 0 || n_influential == 0
+  passed_influence <- n_influential == 0
   passed <- passed_outlier && passed_influence
 
   overview <- data.frame(
     n_obs = length(y),
     ndraws = ndraws,
     outlier_sd_threshold = outlier_sd_threshold,
-    pareto_k_threshold = pareto_k_threshold,
+    leverage_threshold = leverage_threshold,
     interval_lower_prob = probs[1],
     interval_upper_prob = probs[2],
     residual_sd = residual_scale,
@@ -140,12 +150,7 @@ check_brsm_influence <- function(object,
     n_outliers = n_outliers,
     n_outlier_std = sum(obs_diag$outlier_std, na.rm = TRUE),
     n_outlier_interval = sum(obs_diag$outlier_interval, na.rm = TRUE),
-    n_pareto_k_available = n_pareto_available,
-    max_pareto_k = if (n_pareto_available > 0) {
-      max(obs_diag$pareto_k, na.rm = TRUE)
-    } else {
-      NA_real_
-    },
+    max_leverage = max(obs_diag$leverage, na.rm = TRUE),
     n_influential = n_influential,
     passed = passed,
     stringsAsFactors = FALSE
@@ -157,7 +162,7 @@ check_brsm_influence <- function(object,
       ", n_outliers=", n_outliers,
       ", max_abs_std_resid=", format(overview$max_abs_std_residual, digits = 4),
       ", n_influential=", n_influential,
-      ", max_pareto_k=", format(overview$max_pareto_k, digits = 4)
+      ", max_leverage=", format(overview$max_leverage, digits = 4)
     )
   }
 
@@ -171,7 +176,7 @@ check_brsm_influence <- function(object,
     out$plot <- .brsm_plot_influence_diagnostics(
       obs_diag = obs_diag,
       outlier_sd_threshold = outlier_sd_threshold,
-      pareto_k_threshold = pareto_k_threshold
+      leverage_threshold = leverage_threshold
     )
   }
 
@@ -199,44 +204,9 @@ check_brsm_influence <- function(object,
 }
 
 
-.brsm_extract_pareto_k <- function(fit, n_obs, ...) {
-  if (!is.numeric(n_obs) || length(n_obs) != 1L || !is.finite(n_obs) || n_obs < 1) {
-    return(numeric(0))
-  }
-
-  if (!requireNamespace("loo", quietly = TRUE)) {
-    return(rep(NA_real_, as.integer(n_obs)))
-  }
-
-  loo_obj <- tryCatch(
-    brms::loo(fit, ...),
-    error = function(e) NULL
-  )
-
-  if (is.null(loo_obj)) {
-    return(rep(NA_real_, as.integer(n_obs)))
-  }
-
-  k <- tryCatch(
-    as.numeric(loo::pareto_k_values(loo_obj)),
-    error = function(e) NULL
-  )
-
-  if (is.null(k) || length(k) == 0L) {
-    k <- tryCatch(as.numeric(loo_obj$diagnostics$pareto_k), error = function(e) NULL)
-  }
-
-  if (is.null(k) || length(k) != as.integer(n_obs)) {
-    return(rep(NA_real_, as.integer(n_obs)))
-  }
-
-  k
-}
-
-
 .brsm_plot_influence_diagnostics <- function(obs_diag,
                                              outlier_sd_threshold,
-                                             pareto_k_threshold) {
+                                             leverage_threshold) {
   category <- ifelse(
     obs_diag$influential & obs_diag$outlier,
     "outlier+influential",
@@ -264,7 +234,7 @@ check_brsm_influence <- function(object,
     ) +
     ggplot2::labs(
       title = "Influence and Outlier Diagnostics",
-      subtitle = paste0("Pareto-k threshold = ", signif(pareto_k_threshold, 3)),
+      subtitle = paste0("Leverage threshold = ", signif(leverage_threshold, 3)),
       x = "Posterior predictive mean",
       y = "Standardized residual",
       color = "Diagnostic"

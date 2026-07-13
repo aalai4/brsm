@@ -52,7 +52,8 @@ Analyzes data patterns and recommends appropriate polynomial terms for
 BRSM model fitting. Fits exploratory linear models with different term
 specifications and recommends the simplest model that adequately captures
 data structure.
-
+}
+\details{
 Uses adjusted R-squared, information criteria (AIC/BIC), and residual
 patterns to balance model fit against complexity. Recommendations consider:
 \itemize{
@@ -79,4 +80,5 @@ dat_quad <- data.frame(
 )
 recommend_brsm_model_terms(dat_quad, "y", c("x1", "x2"))
 }
+
 }

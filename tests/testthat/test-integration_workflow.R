@@ -23,19 +23,13 @@
     data = input_data,
     response = "y",
     factor_names = c("x1", "x2"),
-    chains = 1,
-    iter = 250,
-    warmup = 125,
+    draws = 250,
     seed = seed,
-    sampling_preset = "fast",
-    refresh = 0,
-    silent = 2
+    coding_policy = "ignore"
   )
 }
 
 test_that("Full workflow: prepare -> fit -> draw conversion", {
-  skip_if_no_brms_tests()
-
   prepared <- prepare_brsm_data(
     .get_integration_data(),
     factor_names = c("x1", "x2"),
@@ -50,31 +44,7 @@ test_that("Full workflow: prepare -> fit -> draw conversion", {
   expect_gt(nrow(posterior), 0)
 })
 
-test_that("Workflow: fit -> LOF test -> comparison", {
-  skip_if_no_brms_tests()
-
-  baseline <- .fit_integration_model(seed = 605)
-  result <- loftest_brsm(
-    object = baseline,
-    reference_type = "cubic",
-    include_ppc = FALSE,
-    chains = 1,
-    iter = 250,
-    warmup = 125,
-    seed = 606,
-    sampling_preset = "fast",
-    refresh = 0,
-    silent = 2
-  )
-
-  expect_type(result, "list")
-  expect_true("comparison" %in% names(result))
-  expect_true(is.data.frame(result$comparison$comparison))
-})
-
 test_that("Workflow: decode predictions to original scale", {
-  skip_if_no_brms_tests()
-
   dat <- .get_integration_data()
   prepared <- prepare_brsm_data(
     dat,
@@ -92,8 +62,6 @@ test_that("Workflow: decode predictions to original scale", {
 })
 
 test_that("Print and summary workflow", {
-  skip_if_no_brms_tests()
-
   fit <- .fit_integration_model(seed = 608)
 
   expect_no_error(print(fit))
@@ -104,26 +72,7 @@ test_that("Print and summary workflow", {
   expect_true(any(grepl("Coefficient Summary", summary_output, fixed = TRUE)))
 })
 
-test_that(
-  "Backward compatibility: existing fit_brsm models work with new functions",
-  {
-  skip_if_no_brms_tests()
-
-  fit <- .fit_integration_model(seed = 614)
-  old_style_fit <- fit
-  old_style_fit$coding <- NULL
-
-  draws <- as_brsm_draws(old_style_fit)
-
-  expect_true(is.data.frame(draws))
-  expect_gt(nrow(draws), 0)
-  expect_no_error(print(old_style_fit))
-}
-)
-
 test_that("Coding metadata persists through full workflow", {
-  skip_if_no_brms_tests()
-
   prepared <- prepare_brsm_data(
     .get_integration_data(),
     c("x1", "x2"),

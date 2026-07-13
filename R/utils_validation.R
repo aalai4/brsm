@@ -70,14 +70,14 @@
 .brsm_validate_bayesian_input <- function(object) {
   # Ensure input is Bayesian-only
   if (inherits(object, "brsm_fit")) {
-    if (is.null(object$fit) || !inherits(object$fit, "brmsfit")) {
-      stop("brsm_fit object must contain a valid brmsfit model in `$fit`.")
+    if (is.null(object$fit)) {
+      stop("brsm_fit object must contain a valid fit in `$fit`.")
     }
     return(invisible(object))
   }
 
-  if (inherits(object, "brmsfit")) {
-    # brmsfit is acceptable
+  if (inherits(object, "brsm_conjugate_fit") || inherits(object, "brmsfit") || inherits(object, "fake_brmsfit")) {
+    # Acceptable fit objects
     return(invisible(object))
   }
 
@@ -88,8 +88,7 @@
       stop(
         "Input data frame lacks Bayesian posterior columns. ",
         "Data frames must have columns named 'b_Intercept', 'b_x1', etc. ",
-        "Consider: (1) using a brmsfit object from brms::brm(), or ",
-        "(2) converting your posterior draws to the required format."
+        "Consider converting your posterior draws to the required format."
       )
     }
     return(invisible(object))
@@ -100,7 +99,7 @@
   stop(
     "brsm workflow input must be strictly Bayesian. ",
     "Accepted input types: (1) brsm_fit object from fit_brsm(), ",
-    "(2) brmsfit object from brms::brm(), or ",
+    "(2) brsm_conjugate_fit object, or ",
     "(3) data frame with Bayesian posterior coefficient columns ",
     "(b_Intercept, b_x1, etc.). ",
     "Received object of class: ", obj_class, ". ",

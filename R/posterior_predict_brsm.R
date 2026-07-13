@@ -109,7 +109,51 @@ posterior_predict_brsm.brsm_fit <- function(object,
   )
 }
 
-#' @rdname posterior_predict_brsm
+#' @export
+posterior_predict_brsm.brsm_conjugate_fit <- function(object,
+                                                      factor_names = NULL,
+                                                      newdata = NULL,
+                                                      include_residual = TRUE,
+                                                      sigma = NULL,
+                                                      summary = FALSE,
+                                                      probs = c(0.025, 0.5, 0.975),
+                                                      draw_subset = NULL,
+                                                      max_draws = NULL,
+                                                      return_matrix = TRUE,
+                                                      output_chunk_size = NULL,
+                                                      seed = NULL,
+                                                      ...) {
+  if (is.null(newdata)) {
+    newdata <- object$data
+  }
+  if (is.null(factor_names)) {
+    factor_names <- object$factor_names
+  }
+
+  draws <- object$draws
+  if (!is.null(max_draws)) {
+    if (max_draws < nrow(draws)) {
+      draws <- draws[seq_len(max_draws), , drop = FALSE]
+    }
+  }
+
+  posterior_predict_brsm.default(
+    object = draws,
+    factor_names = factor_names,
+    newdata = newdata,
+    include_residual = include_residual,
+    sigma = sigma,
+    summary = summary,
+    probs = probs,
+    draw_subset = draw_subset,
+    max_draws = max_draws,
+    return_matrix = return_matrix,
+    output_chunk_size = output_chunk_size,
+    seed = seed,
+    ...
+  )
+}
+
 #' @export
 posterior_predict_brsm.brmsfit <- function(object,
                                            factor_names,
@@ -123,7 +167,8 @@ posterior_predict_brsm.brmsfit <- function(object,
                                            return_matrix = FALSE,
                                            output_chunk_size = NULL,
                                            seed = NULL,
-                                           .sigma_source_draws = NULL) {
+                                           .sigma_source_draws = NULL,
+                                           ...) {
   if (is.null(factor_names)) {
     stop("factor_names must be supplied for brmsfit objects.")
   }
@@ -151,6 +196,11 @@ posterior_predict_brsm.brmsfit <- function(object,
     seed = seed,
     .sigma_source_draws = draws_raw
   )
+}
+
+#' @export
+get_y.brsm_conjugate_fit <- function(object, ...) {
+  object$y
 }
 
 #' @rdname posterior_predict_brsm

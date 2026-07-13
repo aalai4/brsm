@@ -11,14 +11,8 @@ fit_brsm(
   ranges = NULL,
   prior = NULL,
   prior_profile = c("legacy", "regularized", "adaptive"),
-  family = stats::gaussian(),
-  chains = 4,
-  iter = 2000,
-  warmup = floor(iter/2),
+  draws = 2000,
   seed = NULL,
-  sampling_preset = c("fast", "balanced", "robust"),
-  backend = NULL,
-  control = NULL,
   model_terms = c("second_order", "first_order", "first_order_twi", "pure_quadratic"),
   coding_policy = c("warn", "error", "ignore"),
   ...
@@ -41,24 +35,7 @@ ranges are inferred from \code{data}.}
 (moderate shrinkage), or \code{"adaptive"} (data-scaled priors).
 Default is \code{"legacy"}.}
 
-\item{family}{Model family passed to \code{brms::brm()}.}
-
-\item{chains}{Number of MCMC chains.}
-
-\item{iter}{Number of iterations per chain.}
-
-\item{warmup}{Number of warmup iterations per chain.}
-
 \item{seed}{Optional random seed.}
-
-\item{sampling_preset}{Sampling profile for NUTS tuning. One of
-\code{"fast"}, \code{"balanced"}, or \code{"robust"}.}
-
-\item{backend}{Optional backend passed to \code{brms::brm()} (e.g.,
-\code{"rstan"}, \code{"cmdstanr"}). If \code{NULL}, uses brms defaults.}
-
-\item{control}{Optional named list of NUTS control arguments. Values here
-override defaults from \code{sampling_preset}.}
 
 \item{model_terms}{Polynomial term specification. One of
 \code{"second_order"} (default; linear + two-way interactions +
@@ -71,6 +48,23 @@ pure quadratic terms), \code{"first_order"} (linear only),
 \code{"error"}, or \code{"ignore"}.}
 
 \item{...}{Additional arguments passed to \code{brms::brm()}.}
+
+\item{family}{Model family passed to \code{brms::brm()}.}
+
+\item{chains}{Number of MCMC chains.}
+
+\item{iter}{Number of iterations per chain.}
+
+\item{warmup}{Number of warmup iterations per chain.}
+
+\item{sampling_preset}{Sampling profile for NUTS tuning. One of
+\code{"fast"}, \code{"balanced"}, or \code{"robust"}.}
+
+\item{backend}{Optional backend passed to \code{brms::brm()} (e.g.,
+\code{"rstan"}, \code{"cmdstanr"}). If \code{NULL}, uses brms defaults.}
+
+\item{control}{Optional named list of NUTS control arguments. Values here
+override defaults from \code{sampling_preset}.}
 }
 \value{
 An object of class \code{brsm_fit} with elements:

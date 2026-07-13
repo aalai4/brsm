@@ -44,8 +44,8 @@ as_brsm_draws <- function(object, factor_names, ...) {
 #' @rdname as_brsm_draws
 #' @export
 as_brsm_draws.brsm_fit <- function(object, factor_names = NULL, ...) {
-  if (is.null(object$fit) || !inherits(object$fit, "brmsfit")) {
-    stop("brsm_fit object must contain a valid brmsfit model in `$fit`.")
+  if (is.null(object$fit)) {
+    stop("brsm_fit object must contain a valid fit in `$fit`.")
   }
   if (is.null(factor_names)) {
     factor_names <- object$factor_names
@@ -66,67 +66,6 @@ as_brsm_draws.brsm_fit <- function(object, factor_names = NULL, ...) {
     require_quadratic = require_quadratic,
     require_interactions = require_interactions
   )
-  rownames(draws) <- NULL
-  draws
-}
-
-#' @rdname as_brsm_draws
-#' @export
-as_brsm_draws.brmsfit <- function(object, factor_names = NULL, ...) {
-  if (is.null(factor_names)) {
-    stop("factor_names must be supplied for brmsfit objects.")
-  }
-  draws_raw <- as.data.frame(object, ...)
-  draw_cols <- names(draws_raw)
-
-  required_main <- c("b_Intercept", paste0("b_", factor_names))
-  missing_cols <- setdiff(required_main, draw_cols)
-
-  # Quadratic term names must follow canonical brsm naming: b_I(x1^2).
-  quadratic_missing <- character(0)
-  for (f in factor_names) {
-    quad_col <- .brsm_find_quadratic_col(f, draw_cols)
-    if (is.na(quad_col) || quad_col == "") {
-      quadratic_missing <- c(quadratic_missing, paste0("b_I(", f, "^2)"))
-    }
-  }
-
-  missing_interactions <- character(0)
-  if (length(factor_names) > 1) {
-    for (i in seq_len(length(factor_names) - 1)) {
-      for (j in (i + 1):length(factor_names)) {
-        f1 <- factor_names[i]
-        f2 <- factor_names[j]
-        interaction_candidates <- c(
-          paste0("b_", f1, ":", f2),
-          paste0("b_", f2, ":", f1),
-          paste0("b_", f1, ".", f2),
-          paste0("b_", f2, ".", f1)
-        )
-        if (!any(interaction_candidates %in% draw_cols)) {
-          missing_interactions <- c(
-            missing_interactions,
-            paste0("b_", f1, ":", f2)
-          )
-        }
-      }
-    }
-  }
-
-  any_missing <- length(missing_cols) > 0 ||
-    length(quadratic_missing) > 0 ||
-    length(missing_interactions) > 0
-  if (any_missing) {
-    stop(
-      "brms fit is missing required posterior coefficient columns: ",
-      paste(
-        c(missing_cols, quadratic_missing, missing_interactions),
-        collapse = ", "
-      )
-    )
-  }
-
-  draws <- as_brsm_draws.data.frame(draws_raw, factor_names = factor_names)
   rownames(draws) <- NULL
   draws
 }
@@ -197,6 +136,9 @@ as_brsm_draws.data.frame <- function(object,
   # This preserves higher-order or custom terms without manual mapping.
   extra_b_cols <- grep("^b_", names(df_renamed), value = TRUE)
   keep_cols <- unique(c(required_cols, interaction_cols, extra_b_cols))
+  if ("sigma" %in% names(df_renamed)) {
+    keep_cols <- c(keep_cols, "sigma")
+  }
 
   # Return only brsm-format columns
   brsm_cols <- intersect(keep_cols, names(df_renamed))
@@ -212,6 +154,16 @@ as_brsm_draws.data.frame <- function(object,
   }
 
   df_renamed[, brsm_cols, drop = FALSE]
+}
+
+#' @rdname as_brsm_draws
+#' @export
+as_brsm_draws.brmsfit <- function(object, factor_names = NULL, ...) {
+  if (is.null(factor_names)) {
+    stop("factor_names must be supplied for brmsfit objects.")
+  }
+  draws_raw <- as.data.frame(object, ...)
+  as_brsm_draws.data.frame(draws_raw, factor_names = factor_names)
 }
 
 #' @rdname as_brsm_draws

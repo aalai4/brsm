@@ -39,13 +39,10 @@ print.brsm_fit <- function(x, ...) {
     cat("\n")
   }
 
-  # MCMC and sampling information
+  # Sampling information
   if (!is.null(x$sampling)) {
-    cat("MCMC Sampling:\n")
-    cat("  Chains:                 ", x$sampling$chains, "\n")
-    cat("  Iterations per chain:   ", x$sampling$iter, "\n")
-    cat("  Warmup iterations:      ", x$sampling$warmup, "\n")
-    cat("  Sampling preset:        ", x$sampling$sampling_preset, "\n")
+    cat("Conjugate Draws:\n")
+    cat("  Draws:                  ", x$sampling$draws, "\n")
     cat("\n")
   }
 
@@ -53,27 +50,16 @@ print.brsm_fit <- function(x, ...) {
   if (!is.null(x$fit)) {
     cat("Model Fit Summary:\n")
     cat("  Observations:           ", nrow(x$fit$data), "\n")
-    cat("  Parameters estimated:   ", length(brms::fixef(x$fit)[, 1]), "\n")
+    n_coef <- ncol(x$fit$draws) - 1
+    cat("  Parameters estimated:   ", n_coef, "\n")
 
     ratio_message <- .brsm_low_information_message(
       n_obs = nrow(x$fit$data),
-      n_coef = length(brms::fixef(x$fit)[, 1])
+      n_coef = n_coef
     )
     if (!is.null(ratio_message)) {
       cat("  ", ratio_message, "\n", sep = "")
     }
-
-    # Try to extract Rhat summary
-    tryCatch(
-      {
-        rhat_vals <- brms::rhat(x$fit)
-        if (!is.null(rhat_vals) && length(rhat_vals) > 0) {
-          rhat_max <- max(rhat_vals, na.rm = TRUE)
-          cat("  Max Rhat (convergence):  ", round(rhat_max, 4), "\n")
-        }
-      },
-      error = function(e) NULL
-    )
     cat("\n")
   }
 
@@ -89,32 +75,27 @@ print.brsm_fit <- function(x, ...) {
 #' Summary Method for brsm_fit Objects
 #'
 #' Display a detailed summary of a fitted Bayesian response surface model,
-#' including MCMC diagnostics and coefficient summaries from the underlying
-#' \code{brmsfit} object.
+#' including coefficient summaries from the exact conjugate fit.
 #'
 #' @param object An object of class \code{brsm_fit}.
-#' @param ... Additional arguments passed to \code{brms::summary.brmsfit()}.
+#' @param ... Additional arguments.
 #'
 #' @return An object of class \code{summary.brsm_fit} containing:
 #'   \code{brsm_fit_obj} (the original brsm_fit object) and
-#'   \code{brmsfit_summary} (summary of the underlying brmsfit).
+#'   \code{fit_summary} (summary of the underlying conjugate fit).
 #'
 #' @keywords internal
 #' @export
 summary.brsm_fit <- function(object, ...) {
-  if (!requireNamespace("brms", quietly = TRUE)) {
-    stop("package 'brms' is required for summary.brsm_fit().")
-  }
-
-  # Extract and compute summary of underlying brmsfit
-  brmsfit_obj <- object$fit
-  brmsfit_summary <- summary(brmsfit_obj, ...)
-  coef_uncertainty <- .brsm_fixed_effect_uncertainty(brmsfit_obj)
+  # Extract and compute summary of underlying conjugate fit
+  fit_obj <- object$fit
+  fit_summary <- summary(fit_obj, ...)
+  coef_uncertainty <- .brsm_fixed_effect_uncertainty(fit_obj)
 
   # Build custom summary object
   result <- list(
     brsm_fit_obj = object,
-    brmsfit_summary = brmsfit_summary,
+    fit_summary = fit_summary,
     coef_uncertainty = coef_uncertainty,
     formula = object$formula,
     response = object$response,
@@ -168,14 +149,10 @@ print.summary.brsm_fit <- function(x, ...) {
     cat("\n")
   }
 
-  # MCMC information
+  # Draws information
   if (!is.null(x$sampling)) {
-    cat("MCMC Configuration:\n")
-    cat("  ", x$sampling$chains, " chains x ", x$sampling$iter,
-      " iterations (", x$sampling$warmup, " warmup)\n",
-      sep = ""
-    )
-    cat("  Sampling profile: ", x$sampling$sampling_preset, "\n")
+    cat("Conjugate Draws:\n")
+    cat("  Draws:                  ", x$sampling$draws, "\n")
     cat("\n")
   }
 
@@ -198,9 +175,9 @@ print.summary.brsm_fit <- function(x, ...) {
     cat("\n")
   }
 
-  # Delegate to brms summary printing
-  cat("Coefficient Summary (via brms):\n\n")
-  print(x$brmsfit_summary)
+  # Delegate to summary printing
+  cat("Coefficient Summary:\n\n")
+  print(x$fit_summary)
 
   invisible(x)
 }

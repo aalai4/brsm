@@ -145,7 +145,7 @@ test_that("plot_optimum_posterior validates branches and renders plots", {
     show_points = TRUE,
     point_alpha = 0.5
   )
-  expect_equal(length(p_points$layers), 4)
+  expect_equal(length(p_points$layers), 7)
 
   expect_error(
     brsm:::plot_optimum_posterior(draws, c("x1", "x2"), stationary_draws = stationary_df, bins = 0),

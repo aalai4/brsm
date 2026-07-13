@@ -51,8 +51,6 @@ brms_tests_enabled <- function() {
 }
 
 skip_if_no_brms_tests <- function() {
-  skip_if_not_installed("brms")
-  if (!brms_tests_enabled()) {
-    skip("Set BRSM_RUN_BRMS_TESTS=true to run brms model-fitting tests.")
-  }
+  # Direct conjugate fits are fast and don't require Stan compilation.
+  invisible(NULL)
 }

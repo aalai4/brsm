@@ -73,24 +73,14 @@ fit_brsm <- function(data,
                      ranges = NULL,
                      prior = NULL,
                      prior_profile = c("legacy", "regularized", "adaptive"),
-                     family = stats::gaussian(),
-                     chains = 4,
-                     iter = 2000,
-                     warmup = floor(iter / 2),
+                     draws = 2000,
                      seed = NULL,
-                     sampling_preset = c("fast", "balanced", "robust"),
-                     backend = NULL,
-                     control = NULL,
                      model_terms = c(
                        "second_order", "first_order",
                        "first_order_twi", "pure_quadratic"
                      ),
                      coding_policy = c("warn", "error", "ignore"),
                      ...) {
-  if (!requireNamespace("brms", quietly = TRUE)) {
-    stop("package 'brms' is required for fit_brsm().")
-  }
-
   if (!is.data.frame(data)) {
     stop("data must be a data.frame.")
   }
@@ -103,23 +93,7 @@ fit_brsm <- function(data,
   }
 
   prior_profile <- match.arg(prior_profile)
-  sampling_preset <- match.arg(sampling_preset)
   model_terms <- match.arg(model_terms)
-
-  if (!is.null(control) && !is.list(control)) {
-    stop("control must be NULL or a named list.")
-  }
-
-  preset_control <- switch(sampling_preset,
-    fast = list(adapt_delta = 0.8, max_treedepth = 10),
-    balanced = list(adapt_delta = 0.9, max_treedepth = 12),
-    robust = list(adapt_delta = 0.99, max_treedepth = 15)
-  )
-  if (is.null(control)) {
-    control <- preset_control
-  } else {
-    control <- utils::modifyList(preset_control, control)
-  }
 
   factor_names <- .brsm_validate_factor_names(factor_names)
 
@@ -155,62 +129,24 @@ fit_brsm <- function(data,
     )
   }
 
-  linear_terms <- factor_names
-  interaction_terms <- character(0)
-  if (length(factor_names) > 1) {
-    combos <- utils::combn(factor_names, 2, simplify = FALSE)
-    interaction_terms <- vapply(combos, function(pair) {
-      paste0(pair[[1]], ":", pair[[2]])
-    }, character(1))
-  }
-  quadratic_terms <- paste0("I(", factor_names, "^2)")
-
-  rhs_terms <- switch(model_terms,
-    first_order = linear_terms,
-    first_order_twi = c(linear_terms, interaction_terms),
-    pure_quadratic = c(linear_terms, quadratic_terms),
-    second_order = c(linear_terms, interaction_terms, quadratic_terms)
-  )
-
-  if (length(rhs_terms) == 0L) {
-    stop("No model terms selected. Check model_terms and factor_names.")
+  if (!is.null(seed)) {
+    set.seed(seed)
   }
 
-  formula_text <- paste(response, "~", paste(rhs_terms, collapse = " + "))
-  model_formula <- stats::as.formula(formula_text)
-
-  if (is.null(prior)) {
-    prior <- specify_brsm_priors(
-      factor_names = factor_names,
-      model_terms = model_terms,
-      prior_profile = prior_profile,
-      autoscale = TRUE,
-      data = data,
-      response = response
-    )
-  }
-
-  brm_args <- list(
-    formula = model_formula,
+  fit <- .brsm_fit_conjugate(
     data = data,
+    response = response,
+    factor_names = factor_names,
+    ranges = ranges,
     prior = prior,
-    family = family,
-    chains = chains,
-    iter = iter,
-    warmup = warmup,
-    seed = seed,
-    control = control,
-    ...
+    prior_profile = prior_profile,
+    draws = draws,
+    model_terms = model_terms
   )
-  if (!is.null(backend)) {
-    brm_args$backend <- backend
-  }
-
-  fit <- do.call(brms::brm, brm_args)
 
   out <- list(
     fit = fit,
-    formula = model_formula,
+    formula = fit$formula,
     response = response,
     factor_names = factor_names,
     ranges = ranges,
@@ -218,13 +154,8 @@ fit_brsm <- function(data,
     model_terms = model_terms,
     sampling = list(
       prior_profile = prior_profile,
-      sampling_preset = sampling_preset,
-      control = control,
-      chains = chains,
-      iter = iter,
-      warmup = warmup,
-      seed = seed,
-      backend = backend
+      draws = draws,
+      seed = seed
     ),
     call = match.call()
   )

@@ -64,9 +64,8 @@ plot_posterior_contours(
 
 \item{overlay_max_draws}{Cap on posterior draws for overlay.}
 
-\item{uncertainty_overlay}{Logical; if TRUE and \code{type} is not
-\code{"uncertainty"}, overlays dashed uncertainty contours based on
-\code{probs}.}
+\item{uncertainty_overlay}{Logical; if TRUE and `type` is not
+`"uncertainty"`, overlays dashed uncertainty contours based on `probs`.}
 
 \item{seed}{Random seed.}
 }

@@ -4,13 +4,12 @@
 #' from the fitted model.
 #'
 #' @param object A \code{brsm_fit} object from [fit_brsm()] or a
-#'   \code{brmsfit} object.
+#'   \code{brsm_conjugate_fit} object.
 #' @param ndraws Number of posterior predictive draws.
 #' @param probs Length-2 numeric vector of predictive interval probabilities.
 #' @param seed Optional random seed.
-#' @param include_plot Logical; if \code{TRUE}, includes a \code{pp_check}
-#'   histogram overlay plot in the output.
-#' @param ... Additional arguments passed to \code{brms::posterior_predict()}.
+#' @param include_plot Logical; if \code{TRUE}, includes a ggplot2 density overlay.
+#' @param ... Additional arguments.
 #'
 #' @return A list with components:
 #'   \code{summary} (one-row data frame), \code{observed} (numeric vector),
@@ -30,11 +29,14 @@ check_brsm_ppc <- function(object,
                            seed = NULL,
                            include_plot = FALSE,
                            ...) {
-  if (!requireNamespace("brms", quietly = TRUE)) {
-    stop("package 'brms' is required for check_brsm_ppc().")
+  fit <- object
+  if (inherits(object, "brsm_fit")) {
+    fit <- object$fit
   }
 
-  fit <- .brsm_extract_fit(object, caller = "check_brsm_ppc")
+  if (!inherits(fit, "brsm_conjugate_fit")) {
+    stop("object must be a brsm_fit or brsm_conjugate_fit object.")
+  }
 
   if (!is.numeric(ndraws) || length(ndraws) != 1 ||
         ndraws < 1 || !is.finite(ndraws)) {
@@ -48,11 +50,11 @@ check_brsm_ppc <- function(object,
     set.seed(seed)
   }
 
-  y <- as.numeric(brms::get_y(fit))
-  yrep <- brms::posterior_predict(fit, ndraws = ndraws, ...)
+  y <- fit$y
+  yrep <- posterior_predict_brsm(fit, max_draws = ndraws)
 
   if (!is.matrix(yrep) && !is.data.frame(yrep)) {
-    stop("posterior_predict did not return a matrix-like object.")
+    stop("posterior_predict_brsm did not return a matrix-like object.")
   }
   yrep <- as.matrix(yrep)
 
@@ -84,7 +86,32 @@ check_brsm_ppc <- function(object,
   )
 
   if (isTRUE(include_plot)) {
-    out$plot <- brms::pp_check(fit, ndraws = min(ndraws, 100), type = "hist")
+    n_plots <- min(ndraws, 50)
+    plot_draws <- yrep[seq_len(n_plots), , drop = FALSE]
+    
+    # Reshape for ggplot
+    df_y <- data.frame(value = y, group = "Observed", draw = 0L)
+    df_yrep_list <- lapply(seq_len(n_plots), function(i) {
+      data.frame(value = plot_draws[i, ], group = "Simulated", draw = i)
+    })
+    df_plot <- do.call(rbind, c(list(df_y), df_yrep_list))
+    df_plot$group <- factor(df_plot$group, levels = c("Simulated", "Observed"))
+    
+    out$plot <- ggplot2::ggplot(df_plot, ggplot2::aes(x = value)) +
+      ggplot2::geom_density(
+        ggplot2::aes(group = interaction(group, draw), color = group, size = group, alpha = group)
+      ) +
+      ggplot2::scale_color_manual(values = c("Observed" = "black", "Simulated" = "lightblue")) +
+      ggplot2::scale_size_manual(values = c("Observed" = 1.2, "Simulated" = 0.5)) +
+      ggplot2::scale_alpha_manual(values = c("Observed" = 1.0, "Simulated" = 0.4)) +
+      ggplot2::labs(
+        title = "Posterior Predictive Check",
+        subtitle = paste0("Observed vs. ", n_plots, " simulated datasets"),
+        x = "y",
+        y = "Density",
+        color = "", size = "", alpha = ""
+      ) +
+      ggplot2::theme_minimal()
   }
 
   out

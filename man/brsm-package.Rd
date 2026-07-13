@@ -62,15 +62,6 @@ Useful links:
 }
 
 }
-
-\seealso{
-Useful links:
-\itemize{
-  \item \url{https://github.com/aalai4/final-project-451-892-a_square}
-  \item Report bugs at \url{https://github.com/aalai4/final-project-451-892-a_square/issues}
-}
-
-}
 \author{
 \strong{Maintainer}: Arian Alai \email{aalai4@nebraska.edu}
 

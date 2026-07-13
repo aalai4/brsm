@@ -51,10 +51,6 @@ specify_brsm_priors <- function(
     autoscale = FALSE,
     data = NULL,
     response = NULL) {
-  if (!requireNamespace("brms", quietly = TRUE)) {
-    stop("package 'brms' is required for specify_brsm_priors().")
-  }
-
   factor_names <- .brsm_validate_factor_names(factor_names)
   model_terms <- match.arg(model_terms)
   prior_profile <- match.arg(prior_profile)
@@ -221,57 +217,78 @@ specify_brsm_priors <- function(
 
   prior_list <- list()
 
+  .brsm_set_prior <- function(prior_str, class_val, coef_val = "") {
+    df <- data.frame(
+      prior = prior_str,
+      class = class_val,
+      coef = coef_val,
+      group = "",
+      resp = "",
+      dpar = "",
+      nlpar = "",
+      lb = NA_character_,
+      ub = NA_character_,
+      source = "user",
+      stringsAsFactors = FALSE
+    )
+    class(df) <- c("brmsprior", "data.frame")
+    df
+  }
+
   if (isTRUE(include_intercept)) {
-    prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
+    prior_list[[length(prior_list) + 1L]] <- .brsm_set_prior(
       .brsm_prior_string(coefficient_family, 0, intercept_scale, student_df),
-      class = "Intercept"
+      class_val = "Intercept"
     )
   }
 
   need_global_b <- !is.null(available_b_coefs) && any(lengths(resolved$unmatched) > 0L)
   if (need_global_b) {
-    prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
+    prior_list[[length(prior_list) + 1L]] <- .brsm_set_prior(
       .brsm_prior_string(coefficient_family, 0, linear_scale, student_df),
-      class = "b"
+      class_val = "b"
     )
   }
 
   for (f in resolved$matched$linear) {
-    prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
+    prior_list[[length(prior_list) + 1L]] <- .brsm_set_prior(
       .brsm_prior_string(coefficient_family, 0, linear_scale, student_df),
-      class = "b",
-      coef = f
+      class_val = "b",
+      coef_val = f
     )
   }
 
   if (length(resolved$matched$interaction) > 0L) {
     for (coef_name in resolved$matched$interaction) {
-      prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
+      prior_list[[length(prior_list) + 1L]] <- .brsm_set_prior(
         .brsm_prior_string(coefficient_family, 0, interaction_scale, student_df),
-        class = "b",
-        coef = coef_name
+        class_val = "b",
+        coef_val = coef_name
       )
     }
   }
 
   if (length(resolved$matched$quadratic) > 0L) {
     for (coef_name in resolved$matched$quadratic) {
-      prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
+      prior_list[[length(prior_list) + 1L]] <- .brsm_set_prior(
         .brsm_prior_string(coefficient_family, 0, quadratic_scale, student_df),
-        class = "b",
-        coef = coef_name
+        class_val = "b",
+        coef_val = coef_name
       )
     }
   }
 
   if (isTRUE(include_sigma)) {
-    prior_list[[length(prior_list) + 1L]] <- brms::set_prior(
+    prior_list[[length(prior_list) + 1L]] <- .brsm_set_prior(
       paste0("student_t(3, 0, ", signif(sigma_prior_scale, 6), ")"),
-      class = "sigma"
+      class_val = "sigma"
     )
   }
 
-  do.call(c, prior_list)
+  out <- do.call(rbind, prior_list)
+  class(out) <- c("brmsprior", "data.frame")
+  rownames(out) <- NULL
+  out
 }
 
 
@@ -306,12 +323,6 @@ specify_brsm_priors <- function(
                                         include_interactions,
                                         include_quadratic,
                                         data) {
-  if (is.null(data) || !is.data.frame(data) ||
-      is.null(response) || !is.character(response) || length(response) != 1L ||
-      !response %in% names(data)) {
-    return(NULL)
-  }
-
   rhs_terms <- c(linear_terms)
   if (isTRUE(include_interactions)) {
     rhs_terms <- c(rhs_terms, interaction_terms)
@@ -324,21 +335,7 @@ specify_brsm_priors <- function(
     return(NULL)
   }
 
-  formula_text <- paste(response, "~", paste(rhs_terms, collapse = " + "))
-  model_formula <- stats::as.formula(formula_text)
-
-  prior_df <- tryCatch(
-    as.data.frame(brms::default_prior(model_formula, data = data)),
-    error = function(e) NULL
-  )
-
-  if (is.null(prior_df) || !all(c("class", "coef") %in% names(prior_df))) {
-    return(NULL)
-  }
-
-  coefs <- unique(prior_df$coef[prior_df$class == "b"])
-  coefs <- coefs[!is.na(coefs) & nzchar(coefs)]
-  if (length(coefs) == 0L) NULL else as.character(coefs)
+  rhs_terms
 }
 
 
@@ -665,12 +662,7 @@ check_brsm_priors <- function(data,
 }
 
 
-# Sample coefficient and sigma values from a prior specification
 .brsm_sample_prior_predictive <- function(prior, factor_names, model_terms, n_samples) {
-  if (!requireNamespace("brms", quietly = TRUE)) {
-    stop("package 'brms' is required for prior predictive checks.")
-  }
-
   # Extract prior specifications
   prior_df <- as.data.frame(prior)
 

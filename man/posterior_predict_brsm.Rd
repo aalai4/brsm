@@ -3,7 +3,6 @@
 \name{posterior_predict_brsm}
 \alias{posterior_predict_brsm}
 \alias{posterior_predict_brsm.brsm_fit}
-\alias{posterior_predict_brsm.brmsfit}
 \alias{posterior_predict_brsm.default}
 \title{Posterior Predictive Draws at New Points}
 \usage{
@@ -26,22 +25,6 @@ posterior_predict_brsm(
 \method{posterior_predict_brsm}{brsm_fit}(
   object,
   factor_names = NULL,
-  newdata,
-  include_residual = TRUE,
-  sigma = NULL,
-  summary = FALSE,
-  probs = c(0.025, 0.5, 0.975),
-  draw_subset = NULL,
-  max_draws = NULL,
-  return_matrix = FALSE,
-  output_chunk_size = NULL,
-  seed = NULL,
-  .sigma_source_draws = NULL
-)
-
-\method{posterior_predict_brsm}{brmsfit}(
-  object,
-  factor_names,
   newdata,
   include_residual = TRUE,
   sigma = NULL,
